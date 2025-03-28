@@ -4,6 +4,8 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Internal User Representation
@@ -16,7 +18,7 @@ import java.io.Serializable;
  * the primary key
  */
 @Entity
-@Table(name = "USER")
+@Table(name = "USERS")
 public class User implements Serializable {
 
   private static final long serialVersionUID = 1L;
@@ -36,6 +38,9 @@ public class User implements Serializable {
 
   @Column(nullable = false)
   private UserStatus status;
+
+  @ManyToMany(mappedBy = "users")
+  private List<Group> groups = new ArrayList<>();
 
   public Long getId() {
     return id;
@@ -75,5 +80,13 @@ public class User implements Serializable {
 
   public void setStatus(UserStatus status) {
     this.status = status;
+  }
+
+  public List<Group> getGroups() {
+    return groups;
+  }
+
+  public void setGroups(List<Group> groups) {
+    this.groups = groups;
   }
 }

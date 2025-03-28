@@ -1,12 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import java.util.List;
 
 public class UserGetDTO {
 
   private Long id;
   private String username;
   private UserStatus status;
+  private List<Long> groupIds;
 
   public Long getId() {
     return id;
@@ -30,5 +32,13 @@ public class UserGetDTO {
 
   public void setStatus(UserStatus status) {
     this.status = status;
+  }
+
+  public List<Long> getGroupIds() {
+    return groupIds;
+  }
+
+  public void setGroupIds(List<Long> groupIds) {
+    this.groupIds = groupIds;
   }
 }

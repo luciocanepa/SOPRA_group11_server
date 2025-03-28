@@ -1,10 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 public class UserPostDTO {
-
-  private String password;
-
   private String username;
+  private String password;
 
   public String getPassword() {
     return password;
