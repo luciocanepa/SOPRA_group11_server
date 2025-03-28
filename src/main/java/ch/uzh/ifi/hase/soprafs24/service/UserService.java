@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,7 +43,15 @@ public class UserService {
 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
+    newUser.setStatus(UserStatus.ONLINE);
+    // Hash the password before saving
+    try{
+      String hashedPassword = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(newUser.getPassword().getBytes()));
+      newUser.setPassword(hashedPassword);
+    } catch (Exception e) { 
+      System.out.println("An error occurred: " + e.getMessage());
+    }
+    
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
     // flush() is called
@@ -64,16 +74,9 @@ public class UserService {
    */
   private void checkIfUserExists(User userToBeCreated) {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
 
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
-    }
+    if (userByUsername != null) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT,"The username provided is not unique. Therefore, the user could not be created!");
+    } 
   }
 }

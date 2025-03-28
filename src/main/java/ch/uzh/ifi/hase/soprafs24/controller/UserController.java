@@ -42,7 +42,7 @@ public class UserController {
     return userGetDTOs;
   }
 
-  @PostMapping("/users")
+  @PostMapping("/users/register")
   @ResponseStatus(HttpStatus.CREATED)
   @ResponseBody
   public UserGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
