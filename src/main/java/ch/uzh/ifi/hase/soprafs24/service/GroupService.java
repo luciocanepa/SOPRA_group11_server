@@ -4,8 +4,6 @@ import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -13,13 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @Transactional
 public class GroupService {
-
-    private final Logger log = LoggerFactory.getLogger(GroupService.class);
 
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
@@ -48,16 +45,17 @@ public class GroupService {
                     "Admin user with ID " + adminId + " was not found"));
         
         newGroup.setAdminId(admin.getId());
-        newGroup.setUsers(List.of(admin));
-        
+        newGroup.setUsers(new ArrayList<>());
+        newGroup.getUsers().add(admin);
         admin.getGroups().add(newGroup);
 
         newGroup = groupRepository.save(newGroup);
-        userRepository.save(admin);
+        admin = userRepository.save(admin);
         
         groupRepository.flush();
         userRepository.flush();
 
+        newGroup = groupRepository.findById(newGroup.getId()).orElseThrow();
         return newGroup;
     }
 
@@ -67,14 +65,18 @@ public class GroupService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
                     "User with ID " + userId + " was not found"));
 
-        group.getUsers().add(user);
-        user.getGroups().add(group);
-        
-        userRepository.save(user);
-        groupRepository.save(group);
-        
-        groupRepository.flush();
-        userRepository.flush();
+        if (!group.getUsers().contains(user)) {
+            group.getUsers().add(user);
+            user.getGroups().add(group);
+            
+            group = groupRepository.save(group);
+            user = userRepository.save(user);
+            
+            groupRepository.flush();
+            userRepository.flush();
+
+            group = groupRepository.findById(group.getId()).orElseThrow();
+        }
 
         return group;
     }

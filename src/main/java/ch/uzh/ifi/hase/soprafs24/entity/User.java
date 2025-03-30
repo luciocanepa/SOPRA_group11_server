@@ -6,6 +6,7 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Internal User Representation
@@ -88,5 +89,22 @@ public class User implements Serializable {
 
   public void setGroups(List<Group> groups) {
     this.groups = groups;
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) return true;
+    if (object == null || getClass() != object.getClass()) return false;
+    User user = (User) object;
+    return id.equals(user.id) &&
+           password.equals(user.password) &&
+           username.equals(user.username) &&
+           token.equals(user.token) &&
+           status == user.status;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, password, username, token, status);
   }
 }
