@@ -11,9 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.security.MessageDigest;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,9 +31,13 @@ public class UserService {
 
   private final UserRepository userRepository;
 
+  private final BCryptPasswordEncoder passwordEncoder;
+
+
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository) {
     this.userRepository = userRepository;
+    this.passwordEncoder = new BCryptPasswordEncoder();
   }
 
   public List<User> getUsers() {
@@ -45,12 +48,9 @@ public class UserService {
     newUser.setToken(UUID.randomUUID().toString());
     newUser.setStatus(UserStatus.ONLINE);
     // Hash the password before saving
-    try{
-      String hashedPassword = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(newUser.getPassword().getBytes()));
-      newUser.setPassword(hashedPassword);
-    } catch (Exception e) { 
-      System.out.println("An error occurred: " + e.getMessage());
-    }
+    
+    String hashedPassword = passwordEncoder.encode(newUser.getPassword());
+    newUser.setPassword(hashedPassword);
     
     checkIfUserExists(newUser);
     // saves the given entity but data is only persisted in the database once
@@ -60,6 +60,22 @@ public class UserService {
 
     log.debug("Created Information for User: {}", newUser);
     return newUser;
+  }
+
+  public User loginUser(User user) {
+
+    User userByUsername = userRepository.findByUsername(user.getUsername());
+
+    if (userByUsername == null) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User with username: " + user.getUsername() + " not found");
+    }
+
+    if (!passwordEncoder.matches(user.getPassword(), userByUsername.getPassword())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
+  }
+
+    updateStatus(userByUsername);
+    return userByUsername;
   }
 
   /**
@@ -77,6 +93,17 @@ public class UserService {
 
     if (userByUsername != null) {
       throw new ResponseStatusException(HttpStatus.CONFLICT,"The username provided is not unique. Therefore, the user could not be created!");
-    } 
+    }
+  }   
+  
+
+  public void updateStatus(User user) {
+    if(user.getStatus() == UserStatus.OFFLINE) {
+      user.setStatus(UserStatus.ONLINE);
+    } else {
+      user.setStatus(UserStatus.OFFLINE);
+    }
+    userRepository.saveAndFlush(user);
   }
+  
 }
