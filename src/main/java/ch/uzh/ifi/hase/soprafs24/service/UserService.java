@@ -11,11 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-//import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,9 +31,13 @@ public class UserService {
 
   private final UserRepository userRepository;
 
+  private final BCryptPasswordEncoder passwordEncoder;
+
+
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository) {
     this.userRepository = userRepository;
+    this.passwordEncoder = new BCryptPasswordEncoder();
   }
 
   public List<User> getUsers() {
@@ -48,7 +49,7 @@ public class UserService {
     newUser.setStatus(UserStatus.ONLINE);
     // Hash the password before saving
     
-    String hashedPassword = hashPassword(newUser.getPassword());
+    String hashedPassword = passwordEncoder.encode(newUser.getPassword());
     newUser.setPassword(hashedPassword);
     
     checkIfUserExists(newUser);
@@ -68,13 +69,13 @@ public class UserService {
     if (userByUsername == null) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User with username: " + user.getUsername() + " not found");
     }
-    String userPassword = hashPassword(user.getPassword());
 
-    if(userByUsername.getPassword() != userPassword) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "wrong password");
-    }
-    updateStatus(user);
-    return user;
+    if (!passwordEncoder.matches(user.getPassword(), userByUsername.getPassword())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
+  }
+
+    updateStatus(userByUsername);
+    return userByUsername;
   }
 
   /**
@@ -92,19 +93,9 @@ public class UserService {
 
     if (userByUsername != null) {
       throw new ResponseStatusException(HttpStatus.CONFLICT,"The username provided is not unique. Therefore, the user could not be created!");
-    }   
-  }
-
-  private String hashPassword(String password) {
-    try{
-      String hashedPassword = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(password.getBytes()));
-      return hashedPassword;
-    } catch (NoSuchAlgorithmException e) {
-        // SHA-256 should always be available, but we handle it just in case
-        throw new RuntimeException("SHA-256 algorithm not available", e);
     }
-    
-  }
+  }   
+  
 
   public void updateStatus(User user) {
     if(user.getStatus() == UserStatus.OFFLINE) {
@@ -114,14 +105,5 @@ public class UserService {
     }
     userRepository.saveAndFlush(user);
   }
-/* 
-  private String secureStore(String frontendHashedPassword) {
-    return encoder.encode(frontendHashedPassword); 
-  }
-
-  // Verify later
-  private boolean verify(String frontendHashedInput, String storedBcryptHash) {
-    return encoder.matches(frontendHashedInput, storedBcryptHash);
-  }
-  */
+  
 }
