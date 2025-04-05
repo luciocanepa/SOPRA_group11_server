@@ -2,9 +2,12 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.GroupMembershipRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,10 @@ public class GroupServiceIntegrationTest {
     @Qualifier("userRepository") 
     @Autowired
     private UserRepository userRepository;
+    
+    @Qualifier("groupMembershipRepository")
+    @Autowired
+    private GroupMembershipRepository membershipRepository;
 
     @Autowired
     private GroupService groupService;
@@ -38,6 +45,7 @@ public class GroupServiceIntegrationTest {
     public void setup() {
         groupRepository.deleteAll();
         userRepository.deleteAll();
+        membershipRepository.deleteAll();
     }
 
     @Test
@@ -48,16 +56,12 @@ public class GroupServiceIntegrationTest {
         testUser.setPassword("testPassword");
         testUser.setStatus(UserStatus.ONLINE);
         testUser.setToken("testToken");
-        testUser.setId(1L);
         testUser = userService.createUser(testUser);
 
         Group testGroup = new Group();
         testGroup.setName("testGroup");
         testGroup.setAdminId(testUser.getId());
-        testGroup.setUsers(new ArrayList<>());
-        testGroup.getUsers().add(testUser);
-        
-        testUser.getGroups().add(testGroup);
+        testGroup.setMemberships(new ArrayList<>());
 
         // when
         Group createdGroup = groupService.createGroup(testGroup);
@@ -65,8 +69,8 @@ public class GroupServiceIntegrationTest {
         // then
         assertEquals(testGroup.getName(), createdGroup.getName());
         assertEquals(testUser.getId(), createdGroup.getAdminId());
-        assertEquals(1, createdGroup.getUsers().size());
-        assertTrue(createdGroup.getUsers().contains(testUser));
+        assertEquals(1, createdGroup.getActiveUsers().size());
+        assertTrue(createdGroup.getActiveUsers().contains(testUser));
     }
 
     @Test
@@ -89,9 +93,7 @@ public class GroupServiceIntegrationTest {
         Group testGroup = new Group();
         testGroup.setName("testGroup");
         testGroup.setAdminId(admin.getId());
-        testGroup.setUsers(new ArrayList<>());
-        testGroup.getUsers().add(admin);
-        admin.getGroups().add(testGroup);
+        testGroup.setMemberships(new ArrayList<>());
         
         testGroup = groupService.createGroup(testGroup);
 
@@ -99,9 +101,9 @@ public class GroupServiceIntegrationTest {
         Group updatedGroup = groupService.addUserToGroup(testGroup.getId(), member.getId());
 
         // then
-        assertEquals(2, updatedGroup.getUsers().size());
-        assertTrue(updatedGroup.getUsers().contains(admin));
-        assertTrue(updatedGroup.getUsers().contains(member));
+        assertEquals(2, updatedGroup.getActiveUsers().size());
+        assertTrue(updatedGroup.getActiveUsers().contains(admin));
+        assertTrue(updatedGroup.getActiveUsers().contains(member));
     }
 
     @Test

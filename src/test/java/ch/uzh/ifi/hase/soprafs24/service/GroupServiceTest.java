@@ -2,8 +2,11 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.repository.GroupMembershipRepository;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -24,12 +27,16 @@ public class GroupServiceTest {
 
   @Mock
   private UserRepository userRepository;
+  
+  @Mock
+  private GroupMembershipRepository membershipRepository;
 
   @InjectMocks
   private GroupService groupService;
 
   private Group testGroup;
   private User testUser;
+  private GroupMembership testMembership;
 
   @BeforeEach
   public void setup() {
@@ -39,35 +46,47 @@ public class GroupServiceTest {
     testUser = new User();
     testUser.setId(1L);
     testUser.setUsername("testUsername");
-    testUser.setGroups(new ArrayList<>());
+    testUser.setMemberships(new ArrayList<>());
 
     testGroup = new Group();
     testGroup.setId(1L);
     testGroup.setName("testGroup");
     testGroup.setAdminId(1L);
-    testGroup.setUsers(new ArrayList<>());
+    testGroup.setMemberships(new ArrayList<>());
+
+    testMembership = new GroupMembership();
+    testMembership.setUser(testUser);
+    testMembership.setGroup(testGroup);
+    testMembership.setStatus(MembershipStatus.ACTIVE);
 
     // when -> any object is being saved in the repositories -> return the dummy objects
     Mockito.when(groupRepository.save(Mockito.any())).thenReturn(testGroup);
     Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
+    Mockito.when(membershipRepository.save(Mockito.any())).thenReturn(testMembership);
   }
 
   @Test
   public void createGroup_validInputs_success() {
     // when -> setup additional mocks
     Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(testUser));
-
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
-    Group createdGroup = groupService.createGroup(testGroup);
+    
+    // Create a new group with admin
+    Group groupToCreate = new Group();
+    groupToCreate.setName("testGroup");
+    groupToCreate.setAdminId(testUser.getId());
+    
+    Group createdGroup = groupService.createGroup(groupToCreate);
 
     // then
-    Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());
+    Mockito.verify(groupRepository, Mockito.times(2)).save(Mockito.any());
     Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
+    Mockito.verify(membershipRepository, Mockito.times(1)).save(Mockito.any());
 
     assertEquals(testGroup.getId(), createdGroup.getId());
     assertEquals(testGroup.getName(), createdGroup.getName());
     assertEquals(testGroup.getAdminId(), createdGroup.getAdminId());
-    assertEquals(1, createdGroup.getUsers().size());
+    assertEquals(1, createdGroup.getActiveUsers().size());
   }
 
   @Test
