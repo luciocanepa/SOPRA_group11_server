@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -25,14 +24,19 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final GroupMembershipRepository membershipRepository;
+    private final MembershipService membershipService;
+
+    private final static String NOT_FOUND = "%s with ID %s was not found";
 
     @Autowired
     public GroupService(@Qualifier("groupRepository") GroupRepository groupRepository,
                        @Qualifier("userRepository") UserRepository userRepository,
-                       @Qualifier("groupMembershipRepository") GroupMembershipRepository membershipRepository) {
+                       @Qualifier("groupMembershipRepository") GroupMembershipRepository membershipRepository,
+                       MembershipService membershipService) {
         this.groupRepository = groupRepository;
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
+        this.membershipService = membershipService;
     }
 
     public List<Group> getGroups() {
@@ -42,40 +46,23 @@ public class GroupService {
     public Group getGroupById(Long groupId) {
         return this.groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                    "Group with ID " + groupId + " was not found"));
+                    String.format(NOT_FOUND, "Group", groupId)));
     }
 
     public Group createGroup(Group newGroup) {
         final Long adminId = newGroup.getAdminId();
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Admin user with ID " + adminId + " was not found"));
+                    String.format(NOT_FOUND, "Admin user", adminId)));
         
         newGroup.setAdminId(admin.getId());
         
         // Save the group first
         newGroup = groupRepository.save(newGroup);
         
-        // Create an active membership for the admin
-        GroupMembership membership = new GroupMembership();
-        membership.setGroup(newGroup);
-        membership.setUser(admin);
-        membership.setStatus(MembershipStatus.ACTIVE);
-        membership.setInvitedBy(admin.getId()); // Admin invites themselves
-        membership.setInvitedAt(LocalDateTime.now());
+        // Create an active membership for the admin using the membership service
+        membershipService.addUserToGroup(admin, newGroup, MembershipStatus.ACTIVE, admin.getId());
         
-        // Add the membership to both entities
-        newGroup.addMembership(membership);
-        admin.addMembership(membership);
-        
-        // Save everything
-        membership = membershipRepository.save(membership);
-        newGroup = groupRepository.save(newGroup);
-        admin = userRepository.save(admin);
-        
-        groupRepository.flush();
-        userRepository.flush();
-
         return newGroup;
     }
 
@@ -83,7 +70,7 @@ public class GroupService {
         Group group = getGroupById(groupId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                    "User with ID " + userId + " was not found"));
+                    String.format(NOT_FOUND, "User", userId)));
 
         // Check if user is already a member (has an ACTIVE membership)
         boolean isAlreadyMember = group.getMemberships().stream()
@@ -92,35 +79,15 @@ public class GroupService {
         
         if (!isAlreadyMember) {
             // Check if there's a pending invitation
-            GroupMembership existingMembership = group.getMemberships().stream()
-                    .filter(m -> m.getUser().getId().equals(userId))
-                    .findFirst()
-                    .orElse(null);
+            GroupMembership existingMembership = membershipService.findByUserAndGroup(user, group);
             
             if (existingMembership != null) {
                 // Update existing membership to ACTIVE
-                existingMembership.setStatus(MembershipStatus.ACTIVE);
-                membershipRepository.save(existingMembership);
+                membershipService.updateMembershipStatus(existingMembership, MembershipStatus.ACTIVE);
             } else {
-                // Create new ACTIVE membership directly
-                GroupMembership membership = new GroupMembership();
-                membership.setGroup(group);
-                membership.setUser(user);
-                membership.setStatus(MembershipStatus.ACTIVE);
-                membership.setInvitedBy(group.getAdminId());
-                membership.setInvitedAt(LocalDateTime.now());
-                
-                group.addMembership(membership);
-                user.addMembership(membership);
-                
-                membershipRepository.save(membership);
+                // Create new ACTIVE membership using the membership service
+                membershipService.addUserToGroup(user, group, MembershipStatus.ACTIVE, group.getAdminId());
             }
-            
-            group = groupRepository.save(group);
-            user = userRepository.save(user);
-            
-            groupRepository.flush();
-            userRepository.flush();
         }
 
         return group;

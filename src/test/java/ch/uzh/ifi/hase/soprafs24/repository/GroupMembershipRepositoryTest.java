@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @WebAppConfiguration
 @SpringBootTest
-public class GroupMembershipRepositoryTest {
+class GroupMembershipRepositoryTest {
 
     @Qualifier("groupMembershipRepository")
     @Autowired
@@ -39,7 +39,7 @@ public class GroupMembershipRepositoryTest {
     private GroupMembership testMembership;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         membershipRepository.deleteAll();
         groupRepository.deleteAll();
         userRepository.deleteAll();
@@ -82,7 +82,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByUser_success() {
+    void findByUser_success() {
         // when
         List<GroupMembership> memberships = membershipRepository.findByUser(testUser);
 
@@ -93,7 +93,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByGroup_success() {
+    void findByGroup_success() {
         // when
         List<GroupMembership> memberships = membershipRepository.findByGroup(testGroup);
 
@@ -104,7 +104,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByUserAndStatus_success() {
+    void findByUserAndStatus_success() {
         // when
         List<GroupMembership> memberships = membershipRepository.findByUserAndStatus(testUser, MembershipStatus.ACTIVE);
 
@@ -115,7 +115,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByUserAndStatus_noResults() {
+    void findByUserAndStatus_noResults() {
         // when
         List<GroupMembership> memberships = membershipRepository.findByUserAndStatus(testUser, MembershipStatus.PENDING);
 
@@ -124,7 +124,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByGroupAndStatus_success() {
+    void findByGroupAndStatus_success() {
         // when
         List<GroupMembership> memberships = membershipRepository.findByGroupAndStatus(testGroup, MembershipStatus.ACTIVE);
 
@@ -135,7 +135,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByGroupAndStatus_noResults() {
+    void findByGroupAndStatus_noResults() {
         // when
         List<GroupMembership> memberships = membershipRepository.findByGroupAndStatus(testGroup, MembershipStatus.PENDING);
 
@@ -144,7 +144,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByGroupAndUser_success() {
+    void findByGroupAndUser_success() {
         // when
         Optional<GroupMembership> membership = membershipRepository.findByGroupAndUser(testGroup, testUser);
 
@@ -156,7 +156,7 @@ public class GroupMembershipRepositoryTest {
     }
 
     @Test
-    public void findByGroupAndUser_noResults() {
+    void findByGroupAndUser_noResults() {
         // given
         User otherUser = new User();
         otherUser.setUsername("otherUser");

@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(GroupController.class)
-public class GroupControllerTest {
+class GroupControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
@@ -37,7 +37,7 @@ public class GroupControllerTest {
   private GroupService groupService;
 
   @Test
-  public void givenGroups_whenGetGroups_thenReturnJsonArray() throws Exception {
+  void givenGroups_whenGetGroups_thenReturnJsonArray() throws Exception {
     // given
     Group group = new Group();
     group.setId(1L);
@@ -58,7 +58,7 @@ public class GroupControllerTest {
   }
 
   @Test
-  public void getGroup_validInput_groupReturned() throws Exception {
+  void getGroup_validInput_groupReturned() throws Exception {
     // given
     Group group = new Group();
     group.setId(1L);
@@ -77,7 +77,7 @@ public class GroupControllerTest {
   }
 
   @Test
-  public void createGroup_validInput_groupCreated() throws Exception {
+  void createGroup_validInput_groupCreated() throws Exception {
     // given
     Group group = new Group();
     group.setId(1L);
@@ -101,7 +101,7 @@ public class GroupControllerTest {
   }
 
   @Test
-  public void addUserToGroup_validInput_userAdded() throws Exception {
+  void addUserToGroup_validInput_userAdded() throws Exception {
     // given
     Group group = new Group();
     group.setId(1L);

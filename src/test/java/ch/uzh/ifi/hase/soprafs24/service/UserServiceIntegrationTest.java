@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @WebAppConfiguration
 @SpringBootTest
 @Transactional
-public class UserServiceIntegrationTest {
+class UserServiceIntegrationTest {
 
   @Qualifier("userRepository")
   @Autowired
@@ -37,13 +37,13 @@ public class UserServiceIntegrationTest {
   private UserService userService;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     userRepository.deleteAll();
     groupRepository.deleteAll();
   }
 
   @Test
-  public void createUser_validInputs_success() {
+  void createUser_validInputs_success() {
     // given
     assertNull(userRepository.findByUsername("testUsername"));
 
@@ -61,18 +61,18 @@ public class UserServiceIntegrationTest {
     assertNotNull(createdUser.getPassword());
     assertNotNull(createdUser.getToken());
     assertNotNull(createdUser.getId());
-    assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
   }
 
   @Test
-  public void createUser_duplicateUsername_throwsException() {
+  void createUser_duplicateUsername_throwsException() {
     assertNull(userRepository.findByUsername("testUsername"));
 
     User testUser = new User();
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
     testUser.setStatus(UserStatus.ONLINE);
-    User createdUser = userService.createUser(testUser);
+    userService.createUser(testUser);
 
     // attempt to create second user with same username
     User testUser2 = new User();

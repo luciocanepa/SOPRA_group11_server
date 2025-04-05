@@ -34,7 +34,7 @@ public class Group implements Serializable {
     @Column(nullable = false)
     private Long adminId;
 
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<GroupMembership> memberships = new ArrayList<>();
 
     public Long getId() {
@@ -85,6 +85,8 @@ public class Group implements Serializable {
         this.memberships = memberships;
     }
     
+    // These methods are kept for backward compatibility but should be replaced
+    // with calls to MembershipService in the future
     public void addMembership(GroupMembership membership) {
         memberships.add(membership);
         membership.setGroup(this);
@@ -100,6 +102,6 @@ public class Group implements Serializable {
         return memberships.stream()
             .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
             .map(GroupMembership::getUser)
-            .collect(Collectors.toList());
+            .toList();
     }
 }

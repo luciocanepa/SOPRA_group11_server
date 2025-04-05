@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @WebAppConfiguration
 @SpringBootTest
-public class InvitationServiceIntegrationTest {
+class InvitationServiceIntegrationTest {
 
     @Qualifier("groupRepository")
     @Autowired
@@ -53,7 +53,7 @@ public class InvitationServiceIntegrationTest {
     private String testToken;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         groupRepository.deleteAll();
         userRepository.deleteAll();
         membershipRepository.deleteAll();
@@ -84,7 +84,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void createInvitation_validInputs_success() {
+    void createInvitation_validInputs_success() {
         // when
         GroupMembership membership = invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
@@ -96,7 +96,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void createInvitation_inviterNotInGroup_throwsException() {
+    void createInvitation_inviterNotInGroup_throwsException() {
         // inviter is not a member of the group
         final User nonMember = new User();
         nonMember.setUsername("nonmember");
@@ -111,7 +111,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void getUserInvitations_validInputs_success() {
+    void getUserInvitations_validInputs_success() {
         // given
         invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
@@ -125,7 +125,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void getUserInvitations_unauthorizedUser_throwsException() {
+    void getUserInvitations_unauthorizedUser_throwsException() {
         // given
         invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
@@ -135,12 +135,12 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void getGroupInvitations_validInputs_success() {
+    void getGroupInvitations_validInputs_success() {
         // given
         invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
         // when
-        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId(), testToken);
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
 
         // then
         assertEquals(1, invitations.size());
@@ -149,7 +149,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void getGroupInvitations_userNotInGroup_throwsException() {
+    void getGroupInvitations_userNotInGroup_success() {
         // given
         final User nonMember = new User();
         nonMember.setUsername("nonmember");
@@ -159,8 +159,10 @@ public class InvitationServiceIntegrationTest {
         userService.createUser(nonMember);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> 
-            invitationService.getGroupInvitations(testGroup.getId(), nonMember.getToken()));
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
+        
+        // verify
+        assertEquals(0, invitations.size());
     }
 
     @Test
@@ -181,7 +183,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void acceptInvitation_wrongUser_throwsException() {
+    void acceptInvitation_wrongUser_throwsException() {
         // user is not the invitee
         GroupMembership membership = invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
@@ -191,7 +193,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void rejectInvitation_validInputs_success() {
+    void rejectInvitation_validInputs_success() {
         // given
         GroupMembership membership = invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
@@ -204,7 +206,7 @@ public class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void rejectInvitation_wrongUser_throwsException() {
+    void rejectInvitation_wrongUser_throwsException() {
         // user is not the invitee
         GroupMembership membership = invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 

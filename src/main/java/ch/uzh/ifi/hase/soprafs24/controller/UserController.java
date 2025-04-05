@@ -32,7 +32,6 @@ public class UserController {
 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
   public List<UserGetDTO> getAllUsers() {
     // fetch all users in the internal representation
     List<User> users = userService.getUsers();
@@ -47,7 +46,6 @@ public class UserController {
 
   @PostMapping("/users/register")
   @ResponseStatus(HttpStatus.CREATED)
-  @ResponseBody
   public UserGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
     // convert API user to internal representation
     User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
@@ -64,12 +62,11 @@ public class UserController {
         List<Group> groups = userService.getGroupsForUser(id);
         return groups.stream()
                 .map(DTOMapper.INSTANCE::convertEntityToGroupGetDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
   @PostMapping("/users/login")
   @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
   public UserGetDTO loginUser(@RequestBody UserPostDTO userPostDTO) {
     // convert API user to internal representation
     User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);

@@ -2,7 +2,6 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
-import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.InvitationGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.InvitationPostDTO;
@@ -12,7 +11,6 @@ import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,7 +33,6 @@ public class InvitationController {
      */
     @PostMapping("/groups/{gid}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
-    @ResponseBody
     public InvitationGetDTO createInvitation(@PathVariable Long gid, @RequestBody InvitationPostDTO invitationPostDTO, @RequestHeader("Authorization") String token) {
         GroupMembership membership = invitationService.createInvitation(gid, token, invitationPostDTO.getInviteeId());
         return DTOMapper.INSTANCE.convertMembershipToInvitationGetDTO(membership);
@@ -43,15 +40,13 @@ public class InvitationController {
 
     @GetMapping("/groups/{gid}/invitations")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public List<InvitationGetDTO> getGroupInvitations(@PathVariable Long gid, @RequestHeader("Authorization") String token) {
-        return invitationService.getGroupInvitations(gid, token);
+        return invitationService.getGroupInvitations(gid);
     }
 
 
     @GetMapping("/users/{uid}/invitations")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public List<InvitationGetDTO> getUserInvitations(@PathVariable Long uid, @RequestHeader("Authorization") String token) {
         return invitationService.getUserInvitations(uid, token);
     }
@@ -61,7 +56,6 @@ public class InvitationController {
      */
     @PutMapping("/invitations/{iid}/accept")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public GroupGetDTO acceptInvitation(@PathVariable Long iid, @RequestHeader("Authorization") String token) {
         Group updatedGroup = invitationService.acceptInvitation(iid, token);
         return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(updatedGroup);

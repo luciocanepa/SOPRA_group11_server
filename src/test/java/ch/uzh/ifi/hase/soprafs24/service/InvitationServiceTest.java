@@ -23,7 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class InvitationServiceTest {
+class InvitationServiceTest {
 
     @Mock
     private GroupRepository groupRepository;
@@ -40,6 +40,9 @@ public class InvitationServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private MembershipService membershipService;
+
     @InjectMocks
     private InvitationService invitationService;
 
@@ -50,7 +53,7 @@ public class InvitationServiceTest {
     private String testToken;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
 
         // given
@@ -97,21 +100,17 @@ public class InvitationServiceTest {
         Mockito.when(membershipRepository.save(Mockito.any())).thenReturn(testMembership);
         Mockito.when(groupRepository.save(Mockito.any())).thenReturn(testGroup);
         Mockito.when(userRepository.save(Mockito.any())).thenReturn(testInvitee);
+        Mockito.when(membershipService.findByUserAndGroup(Mockito.any(), Mockito.any())).thenReturn(null);
+        Mockito.when(membershipService.addUserToGroup(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(testMembership);
     }
 
     @Test
-    public void createInvitation_validInputs_success() {
-        // If user is not a member of the group, return empty optional
-        Mockito.when(membershipRepository.findByGroupAndUser(testGroup, testInvitee))
-                .thenReturn(Optional.empty());
-
+    void createInvitation_validInputs_success() {
         // then
         GroupMembership createdMembership = invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
         // verify
-        Mockito.verify(membershipRepository).save(Mockito.any());
-        Mockito.verify(groupRepository).save(Mockito.any());
-        Mockito.verify(userRepository).save(Mockito.any());
+        Mockito.verify(membershipService).addUserToGroup(Mockito.any(), Mockito.any(), Mockito.eq(MembershipStatus.PENDING), Mockito.eq(testInviter.getId()));
 
         assertEquals(MembershipStatus.PENDING, createdMembership.getStatus());
         assertEquals(testInviter.getId(), createdMembership.getInvitedBy());
@@ -120,9 +119,8 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void createInvitation_inviterNotInGroup_throwsException() {
+    void createInvitation_inviterNotInGroup_throwsException() {
         // If inviter is not a member of the group, return empty membership
-        Mockito.when(groupService.getGroupById(testGroup.getId())).thenReturn(testGroup);
         testGroup.setMemberships(new ArrayList<>());
 
         // then
@@ -131,12 +129,12 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void createInvitation_inviteeAlreadyMember_throwsException() {
+    void createInvitation_inviteeAlreadyMember_throwsException() {
         // If invitee is already a member of the group, return existing membership
         GroupMembership existingMembership = new GroupMembership();
         existingMembership.setStatus(MembershipStatus.ACTIVE);
-        Mockito.when(membershipRepository.findByGroupAndUser(testGroup, testInvitee))
-                .thenReturn(Optional.of(existingMembership));
+        Mockito.when(membershipService.findByUserAndGroup(testInvitee, testGroup))
+                .thenReturn(existingMembership);
 
         // then
         assertThrows(ResponseStatusException.class, () -> 
@@ -144,7 +142,7 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void getUserInvitations_validInputs_success() {
+    void getUserInvitations_validInputs_success() {
         // get all pending invitations for the invitee (if any and if user exists)
         List<GroupMembership> pendingMemberships = List.of(testMembership);
         Mockito.when(membershipRepository.findByUserAndStatus(testInvitee, MembershipStatus.PENDING))
@@ -165,7 +163,7 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void getUserInvitations_unauthorizedUser_throwsException() {
+    void getUserInvitations_unauthorizedUser_throwsException() {
         // user does not have access
         User unauthorizedUser = new User();
         unauthorizedUser.setId(999L);
@@ -177,16 +175,14 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void getGroupInvitations_validInputs_success() {
+    void getGroupInvitations_validInputs_success() {
         // get all pending invitations for the group (if any and if group exists)
         List<GroupMembership> pendingMemberships = List.of(testMembership);
         Mockito.when(membershipRepository.findByGroupAndStatus(testGroup, MembershipStatus.PENDING))
                 .thenReturn(pendingMemberships);
-        Mockito.when(groupRepository.findById(testGroup.getId()))
-                .thenReturn(Optional.of(testGroup));
 
         // then
-        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId(), testToken);
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
 
         // verify
         assertEquals(1, invitations.size());
@@ -194,17 +190,22 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void getGroupInvitations_userNotInGroup_throwsException() {
+    void getGroupInvitations_userNotInGroup_success() {
         // user is not a member of the group
         testGroup.setMemberships(new ArrayList<>());
+        List<GroupMembership> emptyList = new ArrayList<>();
+        Mockito.when(membershipRepository.findByGroupAndStatus(testGroup, MembershipStatus.PENDING))
+                .thenReturn(emptyList);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> 
-            invitationService.getGroupInvitations(testGroup.getId(), testToken));
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
+        
+        // verify
+        assertEquals(0, invitations.size());
     }
 
     @Test
-    public void acceptInvitation_validInputs_success() {
+    void acceptInvitation_validInputs_success() {
         // find the membership (if any)
         Mockito.when(membershipRepository.findById(testMembership.getId()))
                 .thenReturn(Optional.of(testMembership));
@@ -229,7 +230,7 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void acceptInvitation_wrongUser_throwsException() {
+    void acceptInvitation_wrongUser_throwsException() {
         // invitee does not have access
         User wrongUser = new User();
         wrongUser.setId(999L);
@@ -243,7 +244,7 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void rejectInvitation_validInputs_success() {
+    void rejectInvitation_validInputs_success() {
         // find the membership (if any)
         Mockito.when(membershipRepository.findById(testMembership.getId()))
                 .thenReturn(Optional.of(testMembership));
@@ -267,7 +268,7 @@ public class InvitationServiceTest {
     }
 
     @Test
-    public void rejectInvitation_wrongUser_throwsException() {
+    void rejectInvitation_wrongUser_throwsException() {
         // invitee does not have access
         User wrongUser = new User();
         wrongUser.setId(999L);

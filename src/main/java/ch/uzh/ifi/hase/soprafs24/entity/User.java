@@ -8,7 +8,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Internal User Representation
@@ -42,7 +41,7 @@ public class User implements Serializable {
   @Column(nullable = false)
   private UserStatus status;
 
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   private List<GroupMembership> memberships = new ArrayList<>();
 
   public Long getId() {
@@ -93,6 +92,8 @@ public class User implements Serializable {
     this.memberships = memberships;
   }
   
+  // These methods are kept for backward compatibility but should be replaced
+  // with calls to MembershipService in the future
   public void addMembership(GroupMembership membership) {
     memberships.add(membership);
     membership.setUser(this);
@@ -108,7 +109,7 @@ public class User implements Serializable {
     return memberships.stream()
         .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
         .map(GroupMembership::getGroup)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override

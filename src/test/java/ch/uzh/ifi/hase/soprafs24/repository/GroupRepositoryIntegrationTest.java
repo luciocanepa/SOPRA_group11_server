@@ -11,7 +11,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-public class GroupRepositoryIntegrationTest {
+class GroupRepositoryIntegrationTest {
 
   @Autowired
   private TestEntityManager entityManager;
@@ -20,7 +20,7 @@ public class GroupRepositoryIntegrationTest {
   private GroupRepository groupRepository;
 
   @Test
-  public void findById_success() {
+  void findById_success() {
     // given
     User admin = new User();
     admin.setUsername("testAdmin");
