@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,19 +22,16 @@ public class GroupService {
 
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
-    private final GroupMembershipRepository membershipRepository;
     private final MembershipService membershipService;
 
-    private final static String NOT_FOUND = "%s with ID %s was not found";
+    private static final String NOT_FOUND = "%s with ID %s was not found";
 
     @Autowired
     public GroupService(@Qualifier("groupRepository") GroupRepository groupRepository,
                        @Qualifier("userRepository") UserRepository userRepository,
-                       @Qualifier("groupMembershipRepository") GroupMembershipRepository membershipRepository,
                        MembershipService membershipService) {
         this.groupRepository = groupRepository;
         this.userRepository = userRepository;
-        this.membershipRepository = membershipRepository;
         this.membershipService = membershipService;
     }
 

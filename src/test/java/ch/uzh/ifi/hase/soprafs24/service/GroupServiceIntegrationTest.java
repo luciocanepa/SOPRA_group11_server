@@ -2,9 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
-import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupMembershipRepository;
@@ -126,6 +124,7 @@ class GroupServiceIntegrationTest {
         final User createdUser = userService.createUser(testUser);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> groupService.addUserToGroup(1L, createdUser.getId()));
+        Long invalidGroupId = 1L;
+        assertThrows(ResponseStatusException.class, () -> groupService.addUserToGroup(invalidGroupId, createdUser.getId()));
     }
 }

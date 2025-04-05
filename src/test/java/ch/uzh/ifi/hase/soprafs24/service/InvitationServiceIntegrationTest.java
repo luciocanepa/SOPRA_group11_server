@@ -106,8 +106,11 @@ class InvitationServiceIntegrationTest {
         userService.createUser(nonMember);
 
         // then
+        Long groupId = testGroup.getId();
+        String token = nonMember.getToken();
+        Long inviteeId = testInvitee.getId();
         assertThrows(ResponseStatusException.class, () -> 
-            invitationService.createInvitation(testGroup.getId(), nonMember.getToken(), testInvitee.getId()));
+            invitationService.createInvitation(groupId, token, inviteeId));
     }
 
     @Test
@@ -130,8 +133,8 @@ class InvitationServiceIntegrationTest {
         invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
         // then
-        assertThrows(ResponseStatusException.class, () -> 
-            invitationService.getUserInvitations(testInvitee.getId(), testToken));
+        Long inviteeId = testInvitee.getId();
+        assertThrows(ResponseStatusException.class, () -> invitationService.getUserInvitations(inviteeId, testToken));
     }
 
     @Test
@@ -166,7 +169,7 @@ class InvitationServiceIntegrationTest {
     }
 
     @Test
-    public void acceptInvitation_validInputs_success() {
+    void acceptInvitation_validInputs_success() {
         // given
         GroupMembership membership = invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 

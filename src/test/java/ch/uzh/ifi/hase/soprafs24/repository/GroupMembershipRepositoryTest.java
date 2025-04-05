@@ -67,8 +67,8 @@ class GroupMembershipRepositoryTest {
         testMembership.setInvitedAt(LocalDateTime.now());
         
         // Set up bidirectional relationships
-        testGroup.addMembership(testMembership);
-        testUser.addMembership(testMembership);
+        testGroup.getMemberships().add(testMembership);
+        testUser.getMemberships().add(testMembership);
         
         // Save the entities
         testMembership = membershipRepository.save(testMembership);

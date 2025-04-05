@@ -7,7 +7,6 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.InvitationGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.InvitationPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.InvitationService;
-import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,12 +20,10 @@ import java.util.List;
 public class InvitationController {
 
     private final InvitationService invitationService;
-    private final UserService userService;
-
-    InvitationController(InvitationService invitationService, UserService userService) {
+    
+    InvitationController(InvitationService invitationService) {
         this.invitationService = invitationService;
-        this.userService = userService;
-    }
+    }   
 
     /**
      * POST /groups/{gid}/invitations : Send an invitation to a user to join a group

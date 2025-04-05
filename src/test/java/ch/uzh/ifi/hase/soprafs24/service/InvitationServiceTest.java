@@ -124,8 +124,8 @@ class InvitationServiceTest {
         testGroup.setMemberships(new ArrayList<>());
 
         // then
-        assertThrows(ResponseStatusException.class, () -> 
-            invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId()));
+        Long groupId = testGroup.getId();
+        assertThrows(ResponseStatusException.class, () -> invitationService.createInvitation(groupId, testToken, testInvitee.getId()));
     }
 
     @Test
@@ -137,8 +137,9 @@ class InvitationServiceTest {
                 .thenReturn(existingMembership);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> 
-            invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId()));
+        Long groupId = testGroup.getId();
+        Long inviteeId = testInvitee.getId();
+        assertThrows(ResponseStatusException.class, () -> invitationService.createInvitation(groupId, testToken, inviteeId));
     }
 
     @Test
@@ -170,8 +171,8 @@ class InvitationServiceTest {
         Mockito.when(userService.findByToken(testToken)).thenReturn(unauthorizedUser);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> 
-            invitationService.getUserInvitations(testInvitee.getId(), testToken));
+        Long inviteeId = testInvitee.getId();
+        assertThrows(ResponseStatusException.class, () -> invitationService.getUserInvitations(inviteeId, testToken));
     }
 
     @Test

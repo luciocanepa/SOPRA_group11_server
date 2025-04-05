@@ -92,18 +92,6 @@ public class User implements Serializable {
     this.memberships = memberships;
   }
   
-  // These methods are kept for backward compatibility but should be replaced
-  // with calls to MembershipService in the future
-  public void addMembership(GroupMembership membership) {
-    memberships.add(membership);
-    membership.setUser(this);
-  }
-  
-  public void removeMembership(GroupMembership membership) {
-    memberships.remove(membership);
-    membership.setUser(null);
-  }
-
   @Transient
   public List<Group> getActiveGroups() {
     return memberships.stream()

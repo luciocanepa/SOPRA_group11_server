@@ -90,10 +90,8 @@ public class UserService {
   }
 
   public User findById(Long id) {
-    User userById = userRepository.findById(id)
+    return userRepository.findById(id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-    return userById;
   }
 
   private void checkIfUserExists(User userToBeCreated) {

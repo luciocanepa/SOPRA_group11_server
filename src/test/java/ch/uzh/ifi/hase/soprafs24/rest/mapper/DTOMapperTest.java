@@ -140,8 +140,8 @@ class DTOMapperTest {
     membership.setUser(user);
     membership.setGroup(group);
     membership.setStatus(MembershipStatus.ACTIVE);
-    group.addMembership(membership);
-    user.addMembership(membership);
+    group.getMemberships().add(membership);
+    user.getMemberships().add(membership);
 
     // MAP -> Create GroupGetDTO
     GroupGetDTO groupGetDTO = DTOMapper.INSTANCE.convertEntityToGroupGetDTO(group);
