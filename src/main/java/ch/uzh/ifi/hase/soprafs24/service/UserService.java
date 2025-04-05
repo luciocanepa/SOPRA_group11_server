@@ -1,6 +1,9 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.Group;
+import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.slf4j.Logger;
@@ -15,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * User Service
@@ -79,6 +83,34 @@ public class UserService {
   }
 
   /**
+   * This method finds a user by their token
+   *
+   * @param token the token to search for
+   * @return User if found
+   * @throws org.springframework.web.server.ResponseStatusException if user not found
+   */
+  public User findByToken(String token) {
+    User user = userRepository.findByToken(token);
+    if (user == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User with this token was not found");
+    }
+    return user;
+  }
+  
+  /**
+   * This method finds a user by their ID
+   *
+   * @param id the user ID to search for
+   * @return User if found
+   * @throws org.springframework.web.server.ResponseStatusException if user not found
+   */
+  public User findById(Long id) {
+    return userRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+            "User with ID " + id + " was not found"));
+  }
+
+  /**
    * This is a helper method that will check the uniqueness criteria of the
    * username and the name
    * defined in the User entity. The method will do nothing if the input is unique
@@ -105,5 +137,11 @@ public class UserService {
     }
     userRepository.saveAndFlush(user);
   }
-  
+
+    public List<Group> getGroupsForUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        return user.getActiveGroups();
+    }
 }

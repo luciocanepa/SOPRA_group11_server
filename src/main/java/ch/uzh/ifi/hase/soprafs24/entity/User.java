@@ -1,9 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Internal User Representation
@@ -16,7 +21,7 @@ import java.io.Serializable;
  * the primary key
  */
 @Entity
-@Table(name = "USER")
+@Table(name = "USERS")
 public class User implements Serializable {
 
   private static final long serialVersionUID = 1L;
@@ -36,6 +41,9 @@ public class User implements Serializable {
 
   @Column(nullable = false)
   private UserStatus status;
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<GroupMembership> memberships = new ArrayList<>();
 
   public Long getId() {
     return id;
@@ -75,5 +83,48 @@ public class User implements Serializable {
 
   public void setStatus(UserStatus status) {
     this.status = status;
+  }
+
+  public List<GroupMembership> getMemberships() {
+    return memberships;
+  }
+
+  public void setMemberships(List<GroupMembership> memberships) {
+    this.memberships = memberships;
+  }
+  
+  public void addMembership(GroupMembership membership) {
+    memberships.add(membership);
+    membership.setUser(this);
+  }
+  
+  public void removeMembership(GroupMembership membership) {
+    memberships.remove(membership);
+    membership.setUser(null);
+  }
+
+  @Transient
+  public List<Group> getActiveGroups() {
+    return memberships.stream()
+        .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
+        .map(GroupMembership::getGroup)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) return true;
+    if (object == null || getClass() != object.getClass()) return false;
+    User user = (User) object;
+    return id.equals(user.id) &&
+           password.equals(user.password) &&
+           username.equals(user.username) &&
+           token.equals(user.token) &&
+           status == user.status;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, password, username, token, status);
   }
 }

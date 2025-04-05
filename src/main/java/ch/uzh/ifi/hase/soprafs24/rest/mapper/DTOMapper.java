@@ -1,10 +1,15 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.Group;
+import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * DTOMapper
@@ -24,13 +29,61 @@ public interface DTOMapper {
 
   @Mapping(source = "password", target = "password")
   @Mapping(source = "username", target = "username")
-  @Mapping(target = "id", ignore = true) 
-  @Mapping(target = "token", ignore = true)  
-  @Mapping(target = "status", ignore = true) 
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "token", ignore = true)
+  @Mapping(target = "status", ignore = true)
+  @Mapping(target = "memberships", ignore = true)
+  @Mapping(target = "activeGroups", ignore = true)
   User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
   @Mapping(source = "id", target = "id")
   @Mapping(source = "username", target = "username")
   @Mapping(source = "status", target = "status")
+  @Mapping(expression = "java(convertActiveGroupsToIds(user))", target = "groupIds")
   UserGetDTO convertEntityToUserGetDTO(User user);
+
+  @Mapping(source = "name", target = "name")
+  @Mapping(source = "description", target = "description")
+  @Mapping(source = "image", target = "image")
+  @Mapping(source = "adminId", target = "adminId")
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "memberships", ignore = true)
+  @Mapping(target = "activeUsers", ignore = true)
+  Group convertGroupPostDTOtoEntity(GroupPostDTO groupPostDTO);
+
+  @Mapping(source = "id", target = "id")
+  @Mapping(source = "name", target = "name")
+  @Mapping(source = "description", target = "description")
+  @Mapping(source = "image", target = "image")
+  @Mapping(source = "adminId", target = "adminId")
+  @Mapping(expression = "java(convertActiveUsers(group))", target = "users")
+  GroupGetDTO convertEntityToGroupGetDTO(Group group);
+  
+  @Mapping(source = "id", target = "id")
+  @Mapping(source = "group.id", target = "groupId")
+  @Mapping(source = "group.name", target = "groupName")
+  @Mapping(source = "invitedBy", target = "inviterId")
+  @Mapping(source = "user.id", target = "inviteeId")
+  @Mapping(source = "status", target = "status")
+  @Mapping(source = "invitedAt", target = "invitedAt")
+  InvitationGetDTO convertMembershipToInvitationGetDTO(GroupMembership membership);
+
+  @Named("convertActiveUsers")
+  default List<UserGetDTO> convertActiveUsers(Group group) {
+    if (group.getMemberships() == null) return null;
+    return group.getMemberships().stream()
+        .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
+        .map(m -> m.getUser())
+        .map(this::convertEntityToUserGetDTO)
+        .collect(Collectors.toList());
+  }
+
+  @Named("convertActiveGroupsToIds")
+  default List<Long> convertActiveGroupsToIds(User user) {
+    if (user.getMemberships() == null) return null;
+    return user.getMemberships().stream()
+        .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
+        .map(m -> m.getGroup().getId())
+        .collect(Collectors.toList());
+  }
 }

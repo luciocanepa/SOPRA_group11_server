@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
+import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * User Controller
@@ -55,6 +58,15 @@ public class UserController {
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
   }
 
+    @GetMapping("/users/{id}/groups")
+    @ResponseStatus(HttpStatus.OK)
+    public List<GroupGetDTO> getGroupsForUser(@PathVariable("id") Long id) {
+        List<Group> groups = userService.getGroupsForUser(id);
+        return groups.stream()
+                .map(DTOMapper.INSTANCE::convertEntityToGroupGetDTO)
+                .collect(Collectors.toList());
+    }
+
   @PostMapping("/users/login")
   @ResponseStatus(HttpStatus.OK)
   @ResponseBody
@@ -68,6 +80,5 @@ public class UserController {
     // convert internal representation of user back to API
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedUser);
   }
-
 
 }
