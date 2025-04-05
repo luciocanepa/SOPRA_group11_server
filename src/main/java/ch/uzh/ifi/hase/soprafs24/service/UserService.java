@@ -75,6 +75,7 @@ public class UserService {
   }
 
     updateStatus(userByUsername);
+    userByUsername.setStatus(UserStatus.ONLINE);
     return userByUsername;
   }
 
