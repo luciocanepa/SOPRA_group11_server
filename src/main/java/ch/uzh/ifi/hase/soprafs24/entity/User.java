@@ -1,12 +1,14 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Internal User Representation
@@ -40,8 +42,8 @@ public class User implements Serializable {
   @Column(nullable = false)
   private UserStatus status;
 
-  @ManyToMany(mappedBy = "users")
-  private List<Group> groups = new ArrayList<>();
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<GroupMembership> memberships = new ArrayList<>();
 
   public Long getId() {
     return id;
@@ -83,12 +85,30 @@ public class User implements Serializable {
     this.status = status;
   }
 
-  public List<Group> getGroups() {
-    return groups;
+  public List<GroupMembership> getMemberships() {
+    return memberships;
   }
 
-  public void setGroups(List<Group> groups) {
-    this.groups = groups;
+  public void setMemberships(List<GroupMembership> memberships) {
+    this.memberships = memberships;
+  }
+  
+  public void addMembership(GroupMembership membership) {
+    memberships.add(membership);
+    membership.setUser(this);
+  }
+  
+  public void removeMembership(GroupMembership membership) {
+    memberships.remove(membership);
+    membership.setUser(null);
+  }
+
+  @Transient
+  public List<Group> getActiveGroups() {
+    return memberships.stream()
+        .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
+        .map(GroupMembership::getGroup)
+        .collect(Collectors.toList());
   }
 
   @Override

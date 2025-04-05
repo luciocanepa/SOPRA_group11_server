@@ -4,6 +4,8 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 
 /**
  * Internal Group Representation
@@ -32,13 +34,8 @@ public class Group implements Serializable {
     @Column(nullable = false)
     private Long adminId;
 
-    @ManyToMany
-    @JoinTable(
-        name = "group_users",
-        joinColumns = @JoinColumn(name = "group_id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private List<User> users = new ArrayList<>();
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GroupMembership> memberships = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -80,11 +77,29 @@ public class Group implements Serializable {
         this.adminId = adminId;
     }
 
-    public List<User> getUsers() {
-        return users;
+    public List<GroupMembership> getMemberships() {
+        return memberships;
     }
 
-    public void setUsers(List<User> users) {
-        this.users = users;
+    public void setMemberships(List<GroupMembership> memberships) {
+        this.memberships = memberships;
+    }
+    
+    public void addMembership(GroupMembership membership) {
+        memberships.add(membership);
+        membership.setGroup(this);
+    }
+    
+    public void removeMembership(GroupMembership membership) {
+        memberships.remove(membership);
+        membership.setGroup(null);
+    }
+
+    @Transient
+    public List<User> getActiveUsers() {
+        return memberships.stream()
+            .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
+            .map(GroupMembership::getUser)
+            .collect(Collectors.toList());
     }
 }
