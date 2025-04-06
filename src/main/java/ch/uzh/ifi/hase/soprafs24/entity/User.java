@@ -5,6 +5,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +41,22 @@ public class User implements Serializable {
 
   @Column(nullable = false)
   private UserStatus status;
+
+
+  @Column(nullable = true)
+  private String name;
+
+  @Column(nullable = true)
+  private LocalDate birthday;
+
+  @Column(nullable = true)
+  private String timezone;
+
+  @Lob
+  @Column(nullable = true)
+  private String profilePicture;
+
+
 
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   private List<GroupMembership> memberships = new ArrayList<>();
@@ -83,6 +100,44 @@ public class User implements Serializable {
   public void setStatus(UserStatus status) {
     this.status = status;
   }
+
+
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public LocalDate getBirthday() {
+    return birthday;
+  }
+
+  public void setBirthday(LocalDate birthday) {
+    this.birthday = birthday;
+  }
+
+
+  public String getTimezone() {
+    return timezone;
+  }
+
+  public void setTimezone(String timezone) {
+    this.timezone = timezone;
+  }
+
+
+  public String getProfilePicture() {
+    return profilePicture;
+  }
+
+  public void setProfilePicture(String profilePicture) {
+    this.profilePicture = profilePicture;
+  }
+
+
 
   public List<GroupMembership> getMemberships() {
     return memberships;

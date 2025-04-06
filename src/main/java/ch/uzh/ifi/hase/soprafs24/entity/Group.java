@@ -27,6 +27,7 @@ public class Group implements Serializable {
     @Column
     private String description;
 
+    @Lob
     @Column
     private String image;
 

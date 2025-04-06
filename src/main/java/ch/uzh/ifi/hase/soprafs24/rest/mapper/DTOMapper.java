@@ -102,4 +102,24 @@ public interface DTOMapper {
         .map(m -> m.getGroup().getId())
         .toList();
   }
+
+
+  @Mapping(source = "username", target = "username")
+  @Mapping(source = "name", target = "name")
+  //@Mapping(source = "password", target = "password")
+  @Mapping(source = "birthday", target = "birthday")
+  @Mapping(source = "timezone", target = "timezone")
+  @Mapping(source = "profilePicture", target = "profilePicture")
+  ManageProfileDTO ManageUserProfileDTO(User user);
+
+
+  @Mapping(source = "username", target = "username")
+  @Mapping(source = "name", target = "name")
+  @Mapping(source = "password", target = "password")
+  @Mapping(source = "birthday", target = "birthday")
+  @Mapping(source = "timezone", target = "timezone")
+  @Mapping(source = "profilePicture", target = "profilePicture")
+  @Mapping(source = "token", target = "token")
+  UserPutDTO convertEntityToUserPutDTO(User user);
+
 }
