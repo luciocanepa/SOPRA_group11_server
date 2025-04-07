@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.slf4j.Logger;
@@ -30,14 +31,15 @@ public class UserService {
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
   private final UserRepository userRepository;
-
   private final BCryptPasswordEncoder passwordEncoder;
-
+  private final MembershipService membershipService;
 
   @Autowired
-  public UserService(@Qualifier("userRepository") UserRepository userRepository) {
+  public UserService(@Qualifier("userRepository") UserRepository userRepository,
+                    MembershipService membershipService) {
     this.userRepository = userRepository;
     this.passwordEncoder = new BCryptPasswordEncoder();
+    this.membershipService = membershipService;
   }
 
   public List<User> getUsers() {
@@ -46,15 +48,11 @@ public class UserService {
 
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.ONLINE);
-    // Hash the password before saving
-    
-    String hashedPassword = passwordEncoder.encode(newUser.getPassword());
-    newUser.setPassword(hashedPassword);
-    
+    newUser.setStatus(UserStatus.OFFLINE);
+
     checkIfUserExists(newUser);
-    // saves the given entity but data is only persisted in the database once
-    // flush() is called
+
+    // save user given the certain data
     newUser = userRepository.save(newUser);
     userRepository.flush();
 
@@ -63,48 +61,62 @@ public class UserService {
   }
 
   public User loginUser(User user) {
-
     User userByUsername = userRepository.findByUsername(user.getUsername());
 
     if (userByUsername == null) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User with username: " + user.getUsername() + " not found");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
     }
 
     if (!passwordEncoder.matches(user.getPassword(), userByUsername.getPassword())) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
-  }
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+    }
+
+    userByUsername.setStatus(UserStatus.ONLINE);
+    userByUsername = userRepository.save(userByUsername);
+    userRepository.flush();
 
     updateStatus(userByUsername);
     userByUsername.setStatus(UserStatus.ONLINE);
+    
     return userByUsername;
   }
 
-  /**
-   * This is a helper method that will check the uniqueness criteria of the
-   * username and the name
-   * defined in the User entity. The method will do nothing if the input is unique
-   * and throw an error otherwise.
-   *
-   * @param userToBeCreated
-   * @throws org.springframework.web.server.ResponseStatusException
-   * @see User
-   */
+  public User findByToken(String token) {
+    User userByToken = userRepository.findByToken(token);
+
+    if (userByToken == null) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+    }
+
+    return userByToken;
+  }
+
+  public User findById(Long id) {
+    return userRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+  }
+
   private void checkIfUserExists(User userToBeCreated) {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
+    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
     if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.CONFLICT,"The username provided is not unique. Therefore, the user could not be created!");
+      throw new ResponseStatusException(HttpStatus.CONFLICT,
+          String.format(baseErrorMessage, "username", "is"));
     }
-  }   
-  
+  }
 
   public void updateStatus(User user) {
-    if(user.getStatus() == UserStatus.OFFLINE) {
-      user.setStatus(UserStatus.ONLINE);
-    } else {
-      user.setStatus(UserStatus.OFFLINE);
-    }
-    userRepository.saveAndFlush(user);
+    user.setStatus(UserStatus.OFFLINE);
+    userRepository.save(user);
+    userRepository.flush();
   }
-  
+
+  public List<Group> getGroupsForUser(Long userId) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+    // Use the MembershipService instead of directly accessing the user's active groups
+    return membershipService.getActiveGroupsForUser(user);
+  }
 }

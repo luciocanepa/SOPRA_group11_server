@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserServiceTest {
+class UserServiceTest {
 
   @Mock
   private UserRepository userRepository;
@@ -27,7 +27,7 @@ public class UserServiceTest {
   private User testUser;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     MockitoAnnotations.openMocks(this);
 
     // given
@@ -42,7 +42,7 @@ public class UserServiceTest {
   }
 
   @Test
-  public void createUser_validInputs_success() {
+  void createUser_validInputs_success() {
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
     User createdUser = userService.createUser(testUser);
@@ -54,11 +54,11 @@ public class UserServiceTest {
     assertEquals(testUser.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getPassword());
     assertNotNull(createdUser.getToken());
-    assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
   }
 
   @Test
-  public void createUser_duplicateUsername_throwsException() {
+  void createUser_duplicateUsername_throwsException() {
     // given -> a first user has already been created
     userService.createUser(testUser);
 
@@ -127,21 +127,4 @@ public class UserServiceTest {
     assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginUser));
     
   }
-
-  //test not needed anymore. for safety i wont delete it yet
-  /* 
-  @Test
-  public void createUser_duplicateInputs_throwsException() {
-    // given -> a first user has already been created
-    userService.createUser(testUser);
-
-    // when -> setup additional mocks for UserRepository
-    Mockito.when(userRepository.findByName(Mockito.any())).thenReturn(testUser);
-    Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
-
-    // then -> attempt to create second user with same user -> check that an error
-    // is thrown
-    assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
-  }
-  */
 }
