@@ -85,4 +85,59 @@ class UserServiceIntegrationTest {
     // check that an error is thrown
     assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
   }
+
+  @Test
+  public void loginUser_validInput_success() {
+
+    User testUser = new User();
+    testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword");
+    userService.createUser(testUser);
+
+    User testUser2 = new User();
+    testUser2.setUsername("testUsername");
+    testUser2.setPassword("testPassword");
+
+    //when
+    User loginUser = userService.loginUser(testUser2);
+
+    //then
+    assertEquals(testUser.getId(), loginUser.getId());
+    assertEquals(testUser.getUsername(), loginUser.getUsername());
+    assertNotNull(loginUser.getToken());
+    assertNotNull(loginUser.getId());
+    assertNotNull(loginUser.getPassword());
+    assertEquals(UserStatus.ONLINE, loginUser.getStatus());
+
+  }
+
+  @Test
+  public void loginUser_missingUser_throwsException() {
+
+    User testUser = new User();
+    testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword");
+
+    //check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> userService.loginUser(testUser));
+
+  }
+
+  @Test
+  public void loginUser_wrongPassword_throwsException() {
+
+    User testUser = new User();
+    testUser.setUsername("testUsername");
+    testUser.setPassword("testPassword");
+    userService.createUser(testUser);
+
+    //login user with wrong password
+    User testUser2 = new User();
+    testUser2.setUsername("testUsername");
+    testUser2.setPassword("wrongPasword");
+
+    //check that error is thrown
+    assertThrows(ResponseStatusException.class, () -> userService.loginUser(testUser2));
+
+  }
 }

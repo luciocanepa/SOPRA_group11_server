@@ -75,7 +75,9 @@ public class UserService {
     userByUsername = userRepository.save(userByUsername);
     userRepository.flush();
 
-    log.debug("User logged in: {}", userByUsername);
+    updateStatus(userByUsername);
+    userByUsername.setStatus(UserStatus.ONLINE);
+    
     return userByUsername;
   }
 

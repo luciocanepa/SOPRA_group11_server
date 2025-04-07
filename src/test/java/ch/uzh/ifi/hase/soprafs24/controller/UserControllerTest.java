@@ -115,6 +115,75 @@ class UserControllerTest {
 
   }
 
+  @Test
+  public void loginUser_validInput_loginUser() throws Exception {
+    //given
+
+    User user = new User();
+    user.setId(1L);
+    user.setUsername("testUsername");
+    user.setToken("1");
+    user.setStatus(UserStatus.ONLINE);
+
+    UserPostDTO userPostDTO = new UserPostDTO();
+    userPostDTO.setUsername("testUsername");
+    userPostDTO.setPassword("testPassword");
+
+    given(userService.loginUser(Mockito.any())).willReturn(user);
+
+    MockHttpServletRequestBuilder postRequest = post("/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+
+
+    // then
+    mockMvc.perform(postRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id", is(user.getId().intValue())))
+        .andExpect(jsonPath("$.username", is(user.getUsername())))
+        .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+  }
+
+  @Test
+  public void loginUser_missingUser_throwsException() throws Exception {
+    //given
+    UserPostDTO userPostDTO = new UserPostDTO();
+    userPostDTO.setUsername("testUsername");
+    userPostDTO.setPassword("testPassword");
+
+    given(userService.loginUser(Mockito.any()))
+    .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User with username: " + "testUsername" + " not found"));
+
+    //when
+    MockHttpServletRequestBuilder postRequest = post("/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+    
+    mockMvc.perform(postRequest)
+    .andExpect(status().isUnauthorized());
+
+  }
+
+  @Test
+  public void loginUser_wrongPassword_throwsException() throws Exception {
+    //given
+    UserPostDTO userPostDTO = new UserPostDTO();
+    userPostDTO.setUsername("testUsername");
+    userPostDTO.setPassword("testPassword");
+
+    given(userService.loginUser(Mockito.any()))
+    .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password"));
+
+    //when
+    MockHttpServletRequestBuilder postRequest = post("/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(userPostDTO));
+    
+    mockMvc.perform(postRequest)
+    .andExpect(status().isUnauthorized());
+
+  }
+
   /**
    * Helper Method to convert userPostDTO into a JSON string such that the input
    * can be processed
