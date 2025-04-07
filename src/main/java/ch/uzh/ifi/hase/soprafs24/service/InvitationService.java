@@ -16,21 +16,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class InvitationService {
 
-    private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final GroupMembershipRepository membershipRepository;
     private final GroupService groupService;
     private final UserService userService;
+    private final MembershipService membershipService;
+
+    private static final String notFound = "%s with ID %s was not found";
+    private static final String forbidden = "User with ID %s is not a member of the group";
+    private static final String conflict = "User with ID %s is already a member of the group";
 
     @Autowired
     public InvitationService(
@@ -38,12 +39,13 @@ public class InvitationService {
             @Qualifier("userRepository") UserRepository userRepository,
             @Qualifier("groupMembershipRepository") GroupMembershipRepository membershipRepository,
             GroupService groupService,
-            UserService userService) {
-        this.groupRepository = groupRepository;
+            UserService userService,
+            MembershipService membershipService) {
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
         this.groupService = groupService;
         this.userService = userService;
+        this.membershipService = membershipService;
     }
 
     /**
@@ -59,43 +61,30 @@ public class InvitationService {
 
         // The group should contain the inviter
         if (!group.getActiveUsers().contains(inviter)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User with ID " + inviter.getId() + " is not a member of the group");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(forbidden, inviter.getId()));
         }
         
         // The invitee should not be a member of the group
         User invitee = userRepository.findById(inviteeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with ID " + inviteeId + " was not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(notFound, "User", inviteeId)));
         if (group.getActiveUsers().contains(invitee)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User with ID " + inviteeId + " is already a member of the group");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(conflict, inviteeId));
         }
         
         // Check if an invitation already exists
-        Optional<GroupMembership> existingMembership = membershipRepository.findByGroupAndUser(group, invitee);
-        if (existingMembership.isPresent()) {
-            if (existingMembership.get().getStatus() == MembershipStatus.PENDING) {
+        GroupMembership existingMembership = membershipService.findByUserAndGroup(invitee, group);
+        if (existingMembership != null) {
+            if (existingMembership.getStatus() == MembershipStatus.PENDING) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "An invitation for this user and group already exists and is pending");
-            } else if (existingMembership.get().getStatus() == MembershipStatus.ACTIVE) {
+            } else if (existingMembership.getStatus() == MembershipStatus.ACTIVE) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "The user is already a member of the group");
             } else {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "An invitation for this user and group already exists and is rejected");
             }
         }
         
-        GroupMembership membership = new GroupMembership();
-        membership.setGroup(group);
-        membership.setUser(invitee);
-        membership.setStatus(MembershipStatus.PENDING);
-        membership.setInvitedBy(inviter.getId());
-        membership.setInvitedAt(LocalDateTime.now());
-        
-        group.addMembership(membership);
-        invitee.addMembership(membership);
-        
-        membership = membershipRepository.save(membership);
-        groupRepository.save(group);
-        userRepository.save(invitee);
-        
-        return membership;
+        // Create the invitation using the membership service
+        return membershipService.addUserToGroup(invitee, group, MembershipStatus.PENDING, inviter.getId());
     }
     
     /**
@@ -106,12 +95,12 @@ public class InvitationService {
     public List<InvitationGetDTO> getUserInvitations(Long userId, String token) {
         User requestingUser = userService.findByToken(token);
         if (!requestingUser.getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only view your own invitations");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not authorized to view these invitations");
         }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "User with ID " + userId + " was not found"));
+                        String.format(notFound, "User", userId)));
 
         List<InvitationGetDTO> invitations = new ArrayList<>();
         List<GroupMembership> pendingMemberships = membershipRepository.findByUserAndStatus(user, MembershipStatus.PENDING);
@@ -127,16 +116,9 @@ public class InvitationService {
      * @param groupId the group ID
      * @return list of pending invitations
      */
-    public List<InvitationGetDTO> getGroupInvitations(Long groupId, String token) {
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Group with ID " + groupId + " was not found"));
-
-        User user = userService.findByToken(token);
-        if (!group.getActiveUsers().contains(user)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User with ID " + user.getId() + " is not a member of the group");
-        }
-
+    public List<InvitationGetDTO> getGroupInvitations(Long groupId) {
+        Group group = groupService.getGroupById(groupId);
+        
         List<InvitationGetDTO> invitations = new ArrayList<>();
         List<GroupMembership> pendingMemberships = membershipRepository.findByGroupAndStatus(group, MembershipStatus.PENDING);
         for (GroupMembership membership : pendingMemberships) {
@@ -160,7 +142,7 @@ public class InvitationService {
         
         if (!membership.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
-                    "This invitation does not belong to the user with ID " + user.getId());
+                    String.format(forbidden, user.getId()));
         }
         
         membership.setStatus(MembershipStatus.ACTIVE);
@@ -178,11 +160,11 @@ public class InvitationService {
         User user = userService.findByToken(token);
         GroupMembership membership = membershipRepository.findById(invitationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                        "Invitation with ID " + invitationId + " was not found"));
+                        String.format(notFound, "Invitation", invitationId)));
         
         if (!membership.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
-                    "This invitation does not belong to the user with ID " + user.getId());
+                    String.format(forbidden, user.getId()));
         }
         
         membership.setStatus(MembershipStatus.REJECTED);

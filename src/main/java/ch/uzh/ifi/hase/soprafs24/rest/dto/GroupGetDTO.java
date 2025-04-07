@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
-import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import java.util.List;
 
 public class GroupGetDTO {

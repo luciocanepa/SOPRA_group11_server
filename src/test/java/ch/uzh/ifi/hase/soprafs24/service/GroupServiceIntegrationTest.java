@@ -2,9 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
-import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupMembershipRepository;
@@ -21,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @WebAppConfiguration
 @SpringBootTest
-public class GroupServiceIntegrationTest {
+class GroupServiceIntegrationTest {
 
     @Qualifier("groupRepository")
     @Autowired
@@ -42,14 +40,14 @@ public class GroupServiceIntegrationTest {
     private UserService userService;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         groupRepository.deleteAll();
         userRepository.deleteAll();
         membershipRepository.deleteAll();
     }
 
     @Test
-    public void createGroup_validInputs_success() {
+    void createGroup_validInputs_success() {
         // given
         User testUser = new User();
         testUser.setUsername("testUsername");
@@ -74,7 +72,7 @@ public class GroupServiceIntegrationTest {
     }
 
     @Test
-    public void addUserToGroup_validInputs_success() {
+    void addUserToGroup_validInputs_success() {
         // given
         User admin = new User();
         admin.setUsername("admin");
@@ -107,7 +105,7 @@ public class GroupServiceIntegrationTest {
     }
 
     @Test
-    public void createGroup_invalidAdminId_throwsException() {
+    void createGroup_invalidAdminId_throwsException() {
         // given
         Group testGroup = new Group();
         testGroup.setName("testGroup");
@@ -118,7 +116,7 @@ public class GroupServiceIntegrationTest {
     }
 
     @Test
-    public void addUserToGroup_invalidGroupId_throwsException() {
+    void addUserToGroup_invalidGroupId_throwsException() {
         // given
         User testUser = new User();
         testUser.setUsername("testUsername");
@@ -126,6 +124,7 @@ public class GroupServiceIntegrationTest {
         final User createdUser = userService.createUser(testUser);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> groupService.addUserToGroup(1L, createdUser.getId()));
+        Long invalidGroupId = 1L;
+        assertThrows(ResponseStatusException.class, () -> groupService.addUserToGroup(invalidGroupId, createdUser.getId()));
     }
 }

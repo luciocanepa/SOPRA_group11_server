@@ -37,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * This tests if the UserController works.
  */
 @WebMvcTest(UserController.class)
-public class UserControllerTest {
+class UserControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
@@ -46,7 +46,7 @@ public class UserControllerTest {
   private UserService userService;
 
   @Test
-  public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
+  void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
     // given
     User user = new User();
     user.setUsername("firstname@lastname");
@@ -69,7 +69,7 @@ public class UserControllerTest {
   }
 
   @Test
-  public void createUser_validInput_userCreated() throws Exception {
+  void createUser_validInput_userCreated() throws Exception {
     // given
     User user = new User();
     user.setId(1L);
@@ -97,7 +97,7 @@ public class UserControllerTest {
   }
 
   @Test
-  public void createUser_duplicateUsername_throwsException() throws Exception {
+  void createUser_duplicateUsername_throwsException() throws Exception {
     //given
     UserPostDTO userPostDTO = new UserPostDTO();
     userPostDTO.setUsername("testUsername");
@@ -116,9 +116,9 @@ public class UserControllerTest {
     .andExpect(status().isConflict());
 
   }
-
+  
     @Test
-    public void getUserGroups_validUserId_groupsReturned() throws Exception {
+    void getUserGroups_validUserId_groupsReturned() throws Exception {
         // given
         Long userId = 1L;
         User user = new User();
@@ -150,7 +150,7 @@ public class UserControllerTest {
     }
 
     @Test
-    public void getUserGroups_userNotFound_throwsNotFoundException() throws Exception {
+    void getUserGroups_userNotFound_throwsNotFoundException() throws Exception {
         // given
         Long nonExistentUserId = 999L;  // This user ID does not exist in the database
 
@@ -166,10 +166,7 @@ public class UserControllerTest {
         mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound());  // Expect 404 Not Found
     }
-
-
-
-    /**
+  /*
    * Helper Method to convert userPostDTO into a JSON string such that the input
    * can be processed
    * Input will look like this: {"name": "Test User", "username": "testUsername"}

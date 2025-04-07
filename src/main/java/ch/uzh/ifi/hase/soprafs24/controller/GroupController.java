@@ -29,7 +29,6 @@ public class GroupController {
 
     @GetMapping("/groups")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public List<GroupGetDTO> getAllGroups() {
         List<Group> groups = groupService.getGroups();
         List<GroupGetDTO> groupGetDTOs = new ArrayList<>();
@@ -42,7 +41,6 @@ public class GroupController {
 
     @GetMapping("/groups/{gid}")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public GroupGetDTO getGroup(@PathVariable Long gid) {
         Group group = groupService.getGroupById(gid);
         return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(group);
@@ -50,7 +48,6 @@ public class GroupController {
 
     @PostMapping("/groups")
     @ResponseStatus(HttpStatus.CREATED)
-    @ResponseBody
     public GroupGetDTO createGroup(@RequestBody GroupPostDTO groupPostDTO) {
         Group groupInput = DTOMapper.INSTANCE.convertGroupPostDTOtoEntity(groupPostDTO);
 
@@ -61,7 +58,6 @@ public class GroupController {
 
     @PostMapping("/groups/{gid}")
     @ResponseStatus(HttpStatus.OK)
-    @ResponseBody
     public GroupGetDTO addUserToGroup(@PathVariable Long gid, @RequestBody Long userId) {
         Group updatedGroup = groupService.addUserToGroup(gid, userId);
         

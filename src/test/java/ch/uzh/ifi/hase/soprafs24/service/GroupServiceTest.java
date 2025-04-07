@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class GroupServiceTest {
+class GroupServiceTest {
 
   @Mock
   private GroupRepository groupRepository;
@@ -31,6 +31,9 @@ public class GroupServiceTest {
   @Mock
   private GroupMembershipRepository membershipRepository;
 
+  @Mock
+  private MembershipService membershipService;
+
   @InjectMocks
   private GroupService groupService;
 
@@ -39,7 +42,7 @@ public class GroupServiceTest {
   private GroupMembership testMembership;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     MockitoAnnotations.openMocks(this);
 
     // given
@@ -63,10 +66,11 @@ public class GroupServiceTest {
     Mockito.when(groupRepository.save(Mockito.any())).thenReturn(testGroup);
     Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
     Mockito.when(membershipRepository.save(Mockito.any())).thenReturn(testMembership);
+    Mockito.when(membershipService.addUserToGroup(Mockito.any(), Mockito.any(), Mockito.eq(MembershipStatus.ACTIVE), Mockito.any())).thenReturn(testMembership);
   }
 
   @Test
-  public void createGroup_validInputs_success() {
+  void createGroup_validInputs_success() {
     // when -> setup additional mocks
     Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(testUser));
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
@@ -79,18 +83,16 @@ public class GroupServiceTest {
     Group createdGroup = groupService.createGroup(groupToCreate);
 
     // then
-    Mockito.verify(groupRepository, Mockito.times(2)).save(Mockito.any());
-    Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
-    Mockito.verify(membershipRepository, Mockito.times(1)).save(Mockito.any());
+    Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());
+    Mockito.verify(membershipService).addUserToGroup(Mockito.any(), Mockito.any(), Mockito.eq(MembershipStatus.ACTIVE), Mockito.eq(testUser.getId()));
 
     assertEquals(testGroup.getId(), createdGroup.getId());
     assertEquals(testGroup.getName(), createdGroup.getName());
     assertEquals(testGroup.getAdminId(), createdGroup.getAdminId());
-    assertEquals(1, createdGroup.getActiveUsers().size());
   }
 
   @Test
-  public void createGroup_invalidAdminId_throwsException() {
+  void createGroup_invalidAdminId_throwsException() {
     // when -> setup additional mocks
     Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.empty());
 
@@ -99,7 +101,7 @@ public class GroupServiceTest {
   }
 
   @Test
-  public void getGroupById_success() {
+  void getGroupById_success() {
     // when -> setup additional mocks
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
 
@@ -110,7 +112,7 @@ public class GroupServiceTest {
   }
 
   @Test
-  public void getGroupById_notFound_throwsException() {
+  void getGroupById_notFound_throwsException() {
     // when -> setup additional mocks
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.empty());
 

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests if the mapping between the internal and the external/API representation
  * works.
  */
-public class DTOMapperTest {
+class DTOMapperTest {
   private DTOMapper dtoMapper;
   private Group testGroup;
   private User testUser;
@@ -32,7 +32,7 @@ public class DTOMapperTest {
   private GroupMembership testMembership;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     dtoMapper = DTOMapper.INSTANCE;
 
     // Create test user
@@ -67,7 +67,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void testCreateUser_fromUserPostDTO_toUser_success() {
+  void testCreateUser_fromUserPostDTO_toUser_success() {
     // create UserPostDTO
     UserPostDTO userPostDTO = new UserPostDTO();
     userPostDTO.setUsername("username");
@@ -82,7 +82,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void testGetUser_fromUser_toUserGetDTO_success() {
+  void testGetUser_fromUser_toUserGetDTO_success() {
     // create User
     User user = new User();
     user.setUsername("firstname@lastname");
@@ -101,7 +101,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void testCreateGroup_fromGroupPostDTO_toGroup_success() {
+  void testCreateGroup_fromGroupPostDTO_toGroup_success() {
     // create GroupPostDTO
     GroupPostDTO groupPostDTO = new GroupPostDTO();
     groupPostDTO.setName("testGroup");
@@ -120,7 +120,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void testGetGroup_fromGroup_toGroupGetDTO_success() {
+  void testGetGroup_fromGroup_toGroupGetDTO_success() {
     // create Group with Users
     Group group = new Group();
     group.setId(1L);
@@ -140,8 +140,8 @@ public class DTOMapperTest {
     membership.setUser(user);
     membership.setGroup(group);
     membership.setStatus(MembershipStatus.ACTIVE);
-    group.addMembership(membership);
-    user.addMembership(membership);
+    group.getMemberships().add(membership);
+    user.getMemberships().add(membership);
 
     // MAP -> Create GroupGetDTO
     GroupGetDTO groupGetDTO = DTOMapper.INSTANCE.convertEntityToGroupGetDTO(group);
@@ -157,7 +157,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void convertMembershipToInvitationGetDTO_success() {
+  void convertMembershipToInvitationGetDTO_success() {
     // when
     InvitationGetDTO dto = dtoMapper.convertMembershipToInvitationGetDTO(testMembership);
 
@@ -173,7 +173,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void convertActiveUsers_success() {
+  void convertActiveUsers_success() {
     // given
     GroupMembership activeMembership = new GroupMembership();
     activeMembership.setUser(testUser);
@@ -191,7 +191,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void convertActiveUsers_emptyList() {
+  void convertActiveUsers_emptyList() {
     // given
     testGroup.setMemberships(List.of());
 
@@ -204,7 +204,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void convertActiveUsers_nullMemberships() {
+  void convertActiveUsers_nullMemberships() {
     // given
     testGroup.setMemberships(null);
 
@@ -212,11 +212,12 @@ public class DTOMapperTest {
     List<UserGetDTO> users = dtoMapper.convertActiveUsers(testGroup);
 
     // then
-    assertNull(users);
+    assertNotNull(users);
+    assertTrue(users.isEmpty());
   }
 
   @Test
-  public void convertActiveGroupsToIds_success() {
+  void convertActiveGroupsToIds_success() {
     // given
     GroupMembership activeMembership = new GroupMembership();
     activeMembership.setGroup(testGroup);
@@ -233,7 +234,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void convertActiveGroupsToIds_emptyList() {
+  void convertActiveGroupsToIds_emptyList() {
     // given
     testUser.setMemberships(List.of());
 
@@ -246,7 +247,7 @@ public class DTOMapperTest {
   }
 
   @Test
-  public void convertActiveGroupsToIds_nullMemberships() {
+  void convertActiveGroupsToIds_nullMemberships() {
     // given
     testUser.setMemberships(null);
 
@@ -254,6 +255,7 @@ public class DTOMapperTest {
     List<Long> groupIds = dtoMapper.convertActiveGroupsToIds(testUser);
 
     // then
-    assertNull(groupIds);
+    assertNotNull(groupIds);
+    assertTrue(groupIds.isEmpty());
   }
 }

@@ -8,8 +8,8 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.*;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * DTOMapper
@@ -68,22 +68,38 @@ public interface DTOMapper {
   @Mapping(source = "invitedAt", target = "invitedAt")
   InvitationGetDTO convertMembershipToInvitationGetDTO(GroupMembership membership);
 
+  @Mapping(source = "id", target = "id")
+  @Mapping(source = "group.id", target = "groupId")
+  @Mapping(source = "group.name", target = "groupName")
+  @Mapping(source = "status", target = "status")
+  @Mapping(source = "invitedBy", target = "invitedBy")
+  @Mapping(source = "invitedAt", target = "invitedAt")
+  UserMembershipDTO convertMembershipToUserMembershipDTO(GroupMembership membership);
+
+  @Mapping(source = "id", target = "id")
+  @Mapping(source = "user.id", target = "userId")
+  @Mapping(source = "user.username", target = "username")
+  @Mapping(source = "status", target = "status")
+  @Mapping(source = "invitedBy", target = "invitedBy")
+  @Mapping(source = "invitedAt", target = "invitedAt")
+  GroupMembershipDTO convertMembershipToGroupMembershipDTO(GroupMembership membership);
+
   @Named("convertActiveUsers")
   default List<UserGetDTO> convertActiveUsers(Group group) {
-    if (group.getMemberships() == null) return null;
+    if (group.getMemberships() == null) return new ArrayList<>();
     return group.getMemberships().stream()
         .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
         .map(m -> m.getUser())
         .map(this::convertEntityToUserGetDTO)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Named("convertActiveGroupsToIds")
   default List<Long> convertActiveGroupsToIds(User user) {
-    if (user.getMemberships() == null) return null;
+    if (user.getMemberships() == null) return new ArrayList<>();
     return user.getMemberships().stream()
         .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
         .map(m -> m.getGroup().getId())
-        .collect(Collectors.toList());
+        .toList();
   }
 }

@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
@@ -21,20 +22,21 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserServiceTest {
+class UserServiceTest {
 
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private PasswordEncoder passwordEncoder;
 
   @InjectMocks
   private UserService userService;
 
   private User testUser;
-
-    private Group group1;
-    private Group group2;
-    private GroupMembership membership1;
-    private GroupMembership membership2;
+  private Group group1;
+  private Group group2;
+  private GroupMembership membership1;
+  private GroupMembership membership2;
 
 
     @BeforeEach
@@ -72,7 +74,7 @@ public class UserServiceTest {
   }
 
   @Test
-  public void createUser_validInputs_success() {
+  void createUser_validInputs_success() {
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
     User createdUser = userService.createUser(testUser);
@@ -84,11 +86,11 @@ public class UserServiceTest {
     assertEquals(testUser.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getPassword());
     assertNotNull(createdUser.getToken());
-    assertEquals(UserStatus.ONLINE, createdUser.getStatus());
+    assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
   }
 
   @Test
-  public void createUser_duplicateUsername_throwsException() {
+  void createUser_duplicateUsername_throwsException() {
     // given -> a first user has already been created
     userService.createUser(testUser);
 
@@ -100,63 +102,102 @@ public class UserServiceTest {
     assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
   }
 
-  //test not needed anymore. for safety i wont delete it yet
-  /* 
   @Test
-  public void createUser_duplicateInputs_throwsException() {
-    // given -> a first user has already been created
-    userService.createUser(testUser);
+  void loginUser_validCredentials_success() {
+    // given
+    User loginUser = new User();
+    loginUser.setUsername("testUsername");
+    loginUser.setPassword("testPassword");
 
-    // when -> setup additional mocks for UserRepository
-    Mockito.when(userRepository.findByName(Mockito.any())).thenReturn(testUser);
+    testUser.setPassword("encodedPassword");
+    
+    // mock repository to return testUser when findByUsername is called
+
     Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
+    Mockito.when(passwordEncoder.matches(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
 
-    // then -> attempt to create second user with same user -> check that an error
-    // is thrown
-    assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
+    
+    // when
+    User loggedInUser = userService.loginUser(loginUser);
+    
+    // then
+    Mockito.verify(userRepository, Mockito.times(1)).findByUsername(Mockito.any());
+    
+    
+    assertEquals(testUser.getId(), loggedInUser.getId());
+    assertEquals(testUser.getUsername(), loggedInUser.getUsername());
+    assertEquals(UserStatus.ONLINE, loggedInUser.getStatus());
+    assertNotNull(loggedInUser.getToken());
   }
-  */
 
-    @Test
-    public void getGroupsForUser_shouldReturnActiveGroups_whenUserExists() {
-        // when
-        List<Group> groups = userService.getGroupsForUser(testUser.getId());
+  @Test
+  void loginUser_userNotFound_throwsException() {
+    // given
+    User loginUser = new User();
+    loginUser.setUsername("nonExistingUser");
+    loginUser.setPassword("testPassword");
+    
+    // mock repository to return null when user is not found
+    Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(null);
+    
+    // when/then
+    assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginUser));
+    
+  }
 
-        // then
-        assertNotNull(groups);
-        assertEquals(2, groups.size()); // we expect 2 groups
-        assertEquals("Group 1", groups.get(0).getName());
-        assertEquals("Group 2", groups.get(1).getName());
-    }
+  @Test
+  void loginUser_wrongPassword_throwsException() {
+    // given
+    User loginUser = new User();
+    loginUser.setUsername("testUsername");
+    loginUser.setPassword("wrongPassword");
+    
+    // mock repository to return testUser
+    Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
+    
+    // when/then
+    assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginUser));
+    
+  }
 
-    @Test
-    public void getGroupsForUser_shouldThrowNotFoundException_whenUserDoesNotExist() {
-        // given
-        Long nonExistentUserId = 999L;
-        Mockito.when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
+  @Test
+  void getGroupsForUser_shouldReturnActiveGroups_whenUserExists() {
+      // when
+      List<Group> groups = userService.getGroupsForUser(testUser.getId());
 
-        // when / then
-        assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(nonExistentUserId));
-    }
+      // then
+      assertNotNull(groups);
+      assertEquals(2, groups.size()); // we expect 2 groups
+      assertEquals("Group 1", groups.get(0).getName());
+      assertEquals("Group 2", groups.get(1).getName());
+  }
 
-    // Test if the method returns an empty list in the edge case if the user is part of no groups
-    @Test
-    public void getGroupsForUser_shouldReturnEmptyList_whenUserHasNoGroups() {
-        // given: user with no groups
-        User userWithNoGroups = new User();
-        userWithNoGroups.setId(2L);
-        userWithNoGroups.setUsername("userWithNoGroups");
-        userWithNoGroups.setMemberships(Collections.emptyList()); // No groups
+  @Test
+  void getGroupsForUser_shouldThrowNotFoundException_whenUserDoesNotExist() {
+      // given
+      Long nonExistentUserId = 999L;
+      Mockito.when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
 
-        Mockito.when(userRepository.findById(userWithNoGroups.getId())).thenReturn(Optional.of(userWithNoGroups));
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(nonExistentUserId));
+  }
 
-        // when
-        List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId());
+  // Test if the method returns an empty list in the edge case if the user is part of no groups
+  @Test
+  void getGroupsForUser_shouldReturnEmptyList_whenUserHasNoGroups() {
+      // given: user with no groups
+      User userWithNoGroups = new User();
+      userWithNoGroups.setId(2L);
+      userWithNoGroups.setUsername("userWithNoGroups");
+      userWithNoGroups.setMemberships(Collections.emptyList()); // No groups
 
-        // then
-        assertNotNull(groups);
-        assertTrue(groups.isEmpty(), "Expected an empty list of groups");
-    }
+      Mockito.when(userRepository.findById(userWithNoGroups.getId())).thenReturn(Optional.of(userWithNoGroups));
 
+      // when
+      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId());
 
+      // then
+      assertNotNull(groups);
+      assertTrue(groups.isEmpty(), "Expected an empty list of groups");
+  }
 }
