@@ -123,8 +123,8 @@ class UserServiceIntegrationTest {
       membership2.setUser(testUser);
       membership2.setStatus(MembershipStatus.ACTIVE);
 
-      testUser.addMembership(membership1);
-      testUser.addMembership(membership2);
+      testUser.getMemberships().add(membership1);
+      testUser.getMemberships().add(membership2);
       userRepository.save(testUser);
 
       // when
@@ -151,18 +151,17 @@ class UserServiceIntegrationTest {
     void getGroupsForUser_shouldReturnEmptyList_whenUserHasNoGroups() {
         // Given: A user with no active groups in the database
         User testUser = new User();
-        testUser.setId(1L);
         testUser.setUsername("testUsername");
         testUser.setPassword("testPassword");
         testUser.setStatus(UserStatus.ONLINE);
         testUser.setMemberships(Collections.emptyList());
 
-        userService.createUser(testUser);
-
-        userRepository.save(testUser); // Save to the actual DB in an integration test
+        // Create the user and get the generated ID
+        User createdUser = userService.createUser(testUser);
+        Long userId = createdUser.getId();
 
         // When
-        List<Group> groups = userService.getGroupsForUser(1L);
+        List<Group> groups = userService.getGroupsForUser(userId);
 
         // Then
         assertTrue(groups.isEmpty(), "Expected an empty list of groups");

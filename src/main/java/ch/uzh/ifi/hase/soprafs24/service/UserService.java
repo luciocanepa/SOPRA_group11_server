@@ -9,10 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,14 +31,15 @@ public class UserService {
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
   private final UserRepository userRepository;
-  private final BCryptPasswordEncoder passwordEncoder;
+  private final PasswordEncoder passwordEncoder;
   private final MembershipService membershipService;
 
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
-                    MembershipService membershipService) {
+                    MembershipService membershipService,
+                    PasswordEncoder passwordEncoder) {
     this.userRepository = userRepository;
-    this.passwordEncoder = new BCryptPasswordEncoder();
+    this.passwordEncoder = passwordEncoder;
     this.membershipService = membershipService;
   }
 
@@ -51,6 +52,9 @@ public class UserService {
     newUser.setStatus(UserStatus.OFFLINE);
 
     checkIfUserExists(newUser);
+
+    // Encode the password before saving
+    newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
 
     // save user given the certain data
     newUser = userRepository.save(newUser);

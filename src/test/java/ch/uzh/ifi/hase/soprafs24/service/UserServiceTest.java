@@ -28,6 +28,8 @@ class UserServiceTest {
   private UserRepository userRepository;
   @Mock
   private PasswordEncoder passwordEncoder;
+  @Mock
+  private MembershipService membershipService;
 
   @InjectMocks
   private UserService userService;
@@ -49,11 +51,11 @@ class UserServiceTest {
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
 
-      Group group1 = new Group();
+      group1 = new Group();
       group1.setId(1L);
       group1.setName("Group 1");
 
-      Group group2 = new Group();
+      group2 = new Group();
       group2.setId(2L);
       group2.setName("Group 2");
 
@@ -71,6 +73,14 @@ class UserServiceTest {
     // testUser
         Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
+        
+        // Mock the membershipService to return the groups
+        Mockito.when(membershipService.getActiveGroupsForUser(Mockito.any(User.class)))
+            .thenReturn(Arrays.asList(group1, group2));
+        
+        // Mock password encoder behavior
+        Mockito.when(passwordEncoder.encode(Mockito.anyString())).thenReturn("encodedPassword");
+        Mockito.when(passwordEncoder.matches(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
   }
 
   @Test
@@ -110,24 +120,25 @@ class UserServiceTest {
     loginUser.setPassword("testPassword");
 
     testUser.setPassword("encodedPassword");
+    testUser.setToken("test-token");
     
-    // mock repository to return testUser when findByUsername is called
-
     Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
-    Mockito.when(passwordEncoder.matches(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
-
+    Mockito.when(passwordEncoder.matches(loginUser.getPassword(), testUser.getPassword())).thenReturn(true);
+    Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(testUser);
     
     // when
     User loggedInUser = userService.loginUser(loginUser);
     
     // then
     Mockito.verify(userRepository, Mockito.times(1)).findByUsername(Mockito.any());
+    Mockito.verify(passwordEncoder, Mockito.times(1)).matches(loginUser.getPassword(), testUser.getPassword());
     
+    Mockito.verify(userRepository, Mockito.times(2)).save(Mockito.any(User.class));
     
     assertEquals(testUser.getId(), loggedInUser.getId());
     assertEquals(testUser.getUsername(), loggedInUser.getUsername());
     assertEquals(UserStatus.ONLINE, loggedInUser.getStatus());
-    assertNotNull(loggedInUser.getToken());
+    assertEquals("test-token", loggedInUser.getToken());
   }
 
   @Test
@@ -137,9 +148,8 @@ class UserServiceTest {
     loginUser.setUsername("nonExistingUser");
     loginUser.setPassword("testPassword");
     
-    // mock repository to return null when user is not found
     Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(null);
-    
+
     // when/then
     assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginUser));
     
@@ -152,12 +162,13 @@ class UserServiceTest {
     loginUser.setUsername("testUsername");
     loginUser.setPassword("wrongPassword");
     
-    // mock repository to return testUser
+    testUser.setPassword("encodedPassword");
+    
     Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
+    Mockito.when(passwordEncoder.matches(loginUser.getPassword(), testUser.getPassword())).thenReturn(false);
     
     // when/then
     assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginUser));
-    
   }
 
   @Test
@@ -170,6 +181,9 @@ class UserServiceTest {
       assertEquals(2, groups.size()); // we expect 2 groups
       assertEquals("Group 1", groups.get(0).getName());
       assertEquals("Group 2", groups.get(1).getName());
+      
+      // Verify that membershipService.getActiveGroupsForUser was called
+      Mockito.verify(membershipService, Mockito.times(1)).getActiveGroupsForUser(Mockito.any(User.class));
   }
 
   @Test
@@ -192,6 +206,7 @@ class UserServiceTest {
       userWithNoGroups.setMemberships(Collections.emptyList()); // No groups
 
       Mockito.when(userRepository.findById(userWithNoGroups.getId())).thenReturn(Optional.of(userWithNoGroups));
+      Mockito.when(membershipService.getActiveGroupsForUser(userWithNoGroups)).thenReturn(Collections.emptyList());
 
       // when
       List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId());
