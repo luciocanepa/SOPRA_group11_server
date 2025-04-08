@@ -116,8 +116,15 @@ public class InvitationService {
      * @param groupId the group ID
      * @return list of pending invitations
      */
-    public List<InvitationGetDTO> getGroupInvitations(Long groupId) {
+    public List<InvitationGetDTO> getGroupInvitations(Long groupId, String token) {
         Group group = groupService.getGroupById(groupId);
+        User requestingUser = userService.findByToken(token);
+        
+        // Check if the requesting user is a member of the group
+        boolean isMember = group.getActiveUsers().contains(requestingUser);
+        if (!isMember) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(forbidden, requestingUser.getId()));
+        }
         
         List<InvitationGetDTO> invitations = new ArrayList<>();
         List<GroupMembership> pendingMemberships = membershipRepository.findByGroupAndStatus(group, MembershipStatus.PENDING);

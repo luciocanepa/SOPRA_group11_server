@@ -59,6 +59,15 @@ public interface DTOMapper {
   @Mapping(expression = "java(convertActiveUsers(group))", target = "users")
   GroupGetDTO convertEntityToGroupGetDTO(Group group);
   
+  @Mapping(source = "name", target = "name")
+  @Mapping(source = "description", target = "description")
+  @Mapping(source = "image", target = "image")
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "adminId", ignore = true)
+  @Mapping(target = "memberships", ignore = true)
+  @Mapping(target = "activeUsers", ignore = true)
+  Group convertGroupPutDTOtoEntity(GroupPutDTO groupPutDTO);
+  
   @Mapping(source = "id", target = "id")
   @Mapping(source = "group.id", target = "groupId")
   @Mapping(source = "group.name", target = "groupName")
