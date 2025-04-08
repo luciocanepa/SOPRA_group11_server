@@ -38,7 +38,7 @@ public class InvitationController {
     @GetMapping("/groups/{gid}/invitations")
     @ResponseStatus(HttpStatus.OK)
     public List<InvitationGetDTO> getGroupInvitations(@PathVariable Long gid, @RequestHeader("Authorization") String token) {
-        return invitationService.getGroupInvitations(gid);
+        return invitationService.getGroupInvitations(gid, token);
     }
 
 

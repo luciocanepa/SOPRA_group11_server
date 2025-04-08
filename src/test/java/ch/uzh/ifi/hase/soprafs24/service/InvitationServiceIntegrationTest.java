@@ -143,7 +143,7 @@ class InvitationServiceIntegrationTest {
         invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
 
         // when
-        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId(), testToken);
 
         // then
         assertEquals(1, invitations.size());
@@ -152,7 +152,7 @@ class InvitationServiceIntegrationTest {
     }
 
     @Test
-    void getGroupInvitations_userNotInGroup_success() {
+    void getGroupInvitations_nonMemberUser_throwsException() {
         // given
         final User nonMember = new User();
         nonMember.setUsername("nonmember");
@@ -162,10 +162,34 @@ class InvitationServiceIntegrationTest {
         userService.createUser(nonMember);
 
         // then
-        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
+        assertThrows(ResponseStatusException.class, () -> 
+            invitationService.getGroupInvitations(testGroup.getId(), nonMember.getToken()));
+    }
+
+    @Test
+    void getGroupInvitations_memberUser_success() {
+        // given
+        // Create a regular member (not admin)
+        User member = new User();
+        member.setUsername("member");
+        member.setPassword("password");
+        member.setStatus(UserStatus.ONLINE);
+        member.setToken("member-token");
+        member = userService.createUser(member);
         
-        // verify
-        assertEquals(0, invitations.size());
+        // Add the member to the group
+        groupService.addUserToGroup(testGroup.getId(), member.getId());
+        
+        // Create an invitation
+        invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());
+
+        // when
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId(), member.getToken());
+
+        // then
+        assertEquals(1, invitations.size());
+        assertEquals(testInvitee.getId(), invitations.get(0).getInviteeId());
+        assertEquals(testInviter.getId(), invitations.get(0).getInviterId());
     }
 
     @Test

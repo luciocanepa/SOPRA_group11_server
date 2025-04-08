@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPutDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 import org.springframework.http.HttpStatus;
@@ -63,4 +64,32 @@ public class GroupController {
         
         return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(updatedGroup);
     }
+
+    /**
+     * PUT /groups/{gid} : Update a group
+     * @param gid the ID of the group to update
+     * @param groupPutDTO the group data to update
+     * @return the updated group
+     */
+    @PutMapping("/groups/{gid}")
+    @ResponseStatus(HttpStatus.OK)
+    public GroupGetDTO updateGroup(@PathVariable Long gid, @RequestBody GroupPutDTO groupPutDTO) {
+        Group groupInput = DTOMapper.INSTANCE.convertGroupPutDTOtoEntity(groupPutDTO);
+        
+        Group updatedGroup = groupService.updateGroup(gid, groupInput);
+        
+        return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(updatedGroup);
+    }
+
+    /**
+     * DELETE /groups/{gid} : Delete a group
+     * @param gid the ID of the group to delete
+     */
+    @DeleteMapping("/groups/{gid}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteGroup(@PathVariable Long gid) {
+        groupService.deleteGroup(gid);
+    }
+
+    
 }
