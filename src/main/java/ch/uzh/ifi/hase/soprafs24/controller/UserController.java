@@ -3,7 +3,6 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.ManageProfileDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPutDTO;
@@ -92,18 +91,18 @@ public class UserController {
 
   @GetMapping("/users/{id}")
   @ResponseStatus(HttpStatus.OK)
-  public ManageProfileDTO getUser(@PathVariable Long id) {
+  public UserGetDTO getUser(@PathVariable Long id) {
 
     User user = userService.getUser(id);
-    return DTOMapper.INSTANCE.ManageUserProfileDTO(user);
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
 
   }
 
   @PutMapping("/users/{id}")
   @ResponseStatus(HttpStatus.OK)
-  public UserPutDTO putEdits(@PathVariable Long id, @RequestBody UserPutDTO edits) {
+  public UserPutDTO putEdits(@PathVariable Long id, @RequestBody UserPutDTO edits, @RequestHeader("Authorization") String token) {
 
-    User userEdited = userService.putUserEdits(id, edits);
+    User userEdited = userService.putUserEdits(id, edits, token);
 
     return DTOMapper.INSTANCE.convertEntityToUserPutDTO(userEdited);
   }

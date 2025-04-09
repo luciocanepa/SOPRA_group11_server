@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import java.time.LocalDate;
 import java.util.List;
 
 public class UserGetDTO {
@@ -10,6 +11,10 @@ public class UserGetDTO {
   private String username;
   private UserStatus status;
   private List<Long> groupIds;
+  private String name;
+  private LocalDate birthday;
+  private String timezone;
+  private String profilePicture;
 
   public Long getId() {
     return id;
@@ -50,4 +55,40 @@ public class UserGetDTO {
   public void setGroupIds(List<Long> groupIds) {
     this.groupIds = groupIds;
   }
+
+
+  public String getName() {
+    return name;
+}
+
+  public void setName(String name) {
+    this.name = name;
+}  
+
+  public LocalDate getBirthday() {
+    return birthday;
+  }
+
+  public void setBirthday(LocalDate birthday) {
+    this.birthday = birthday;
+  }
+
+  public String getTimezone() {
+    return timezone;
+  }
+
+  public void setTimezone(String timezone) {
+    this.timezone = timezone;
+  }
+
+  public String getProfilePicture() {
+    return profilePicture;
+  }
+
+  public void setProfilePicture(String profilePicture) {
+    this.profilePicture = profilePicture;
+  }
+
+
+
 }

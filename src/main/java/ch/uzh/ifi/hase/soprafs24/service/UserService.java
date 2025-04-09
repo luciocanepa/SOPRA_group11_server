@@ -131,22 +131,24 @@ public class UserService {
 
 
 
-  public User putUserEdits(Long id , UserPutDTO edits  ) {
-    User user = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException (HttpStatus.NOT_FOUND, "There is no user with this id."));
+  public User putUserEdits(Long id , UserPutDTO edits , String token ) {
+    User user = findByToken(token); // validity of token already checked by the method
 
-    if (!user.getToken().equals(edits.getToken())) {
+    if (!user.getId().equals(id)) { //id we got via token does not match id from the url
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unauthorized to edit this user");
     }
     //if the field for username has a value and the new username equals another then it will not work
-    if (edits.getUsername() != null && edits.getUsername().equals(user.getUsername())) {
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "This already is your username.");
-    }
-    else if (edits.getUsername() != null && userRepository.findByUsername(edits.getUsername()) != null) {
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "There is another user with this username, chose another one.");
-    }
-    else if (edits.getUsername() != null ){
-      user.setUsername(edits.getUsername());
-    }
+    if (edits.getUsername() != null) {
+      if (edits.getUsername().equals(user.getUsername())) {
+          // nothing happens when the entered username is the same
+      }
+      else if (userRepository.findByUsername(edits.getUsername()) != null) {
+          throw new ResponseStatusException(HttpStatus.CONFLICT, "There is another user with this username, choose another one.");
+      }
+      else {
+          user.setUsername(edits.getUsername());
+      }
+  }
     
     if (edits.getPassword() != null) {
       user.setPassword(passwordEncoder.encode(edits.getPassword()));

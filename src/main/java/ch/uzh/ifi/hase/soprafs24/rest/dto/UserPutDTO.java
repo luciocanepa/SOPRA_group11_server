@@ -8,7 +8,6 @@ public class UserPutDTO {
     private LocalDate birthday;
     private String timezone;
     private String profilePicture;
-    private String token;
     
 
     public String getUsername() {
@@ -49,14 +48,6 @@ public class UserPutDTO {
     
     public void setProfilePicture(String profilePicture) {
         this.profilePicture = profilePicture;
-    }
-
-    public String getToken() {
-        return token;
-    }
-    
-    public void setToken(String token) {
-        this.token = token;
     }
 
     public String getPassword() {
