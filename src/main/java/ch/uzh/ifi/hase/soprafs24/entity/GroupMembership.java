@@ -4,9 +4,13 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "GROUPS_USERS")
+@Getter
+@Setter
 public class GroupMembership implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -33,51 +37,4 @@ public class GroupMembership implements Serializable {
     @Column
     private LocalDateTime invitedAt;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Group getGroup() {
-        return group;
-    }
-
-    public void setGroup(Group group) {
-        this.group = group;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public MembershipStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(MembershipStatus status) {
-        this.status = status;
-    }
-
-    public Long getInvitedBy() {
-        return invitedBy;
-    }
-
-    public void setInvitedBy(Long invitedBy) {
-        this.invitedBy = invitedBy;
-    }
-
-    public LocalDateTime getInvitedAt() {
-        return invitedAt;
-    }
-
-    public void setInvitedAt(LocalDateTime invitedAt) {
-        this.invitedAt = invitedAt;
-    }
 } 

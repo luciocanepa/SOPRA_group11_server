@@ -1,10 +1,8 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
-import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPutDTO;
-import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
