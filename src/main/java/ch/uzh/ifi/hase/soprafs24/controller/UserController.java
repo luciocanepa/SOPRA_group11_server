@@ -84,4 +84,14 @@ public class UserController {
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedUser);
   }
 
+  @PostMapping("users/{id}/logout")
+  @ResponseStatus(HttpStatus.OK)
+  public UserGetDTO logoutUser(@PathVariable("id") Long id) {
+    User user = userService.getUser(id);
+
+    user = userService.logoutUser(user);
+    
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+  }
+
 }

@@ -47,9 +47,15 @@ public class UserService {
     return this.userRepository.findAll();
   }
 
+  public User getUser(Long id) {
+    
+    return this.userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    
+  }
+
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
+    newUser.setStatus(UserStatus.ONLINE);
 
     checkIfUserExists(newUser);
 
@@ -114,6 +120,14 @@ public class UserService {
     user.setStatus(UserStatus.OFFLINE);
     userRepository.save(user);
     userRepository.flush();
+  }
+
+  public User logoutUser(User user) {
+    user.setStatus(UserStatus.OFFLINE);
+    userRepository.save(user);
+    userRepository.flush();
+    return user;
+
   }
 
   public List<Group> getGroupsForUser(Long userId) {
