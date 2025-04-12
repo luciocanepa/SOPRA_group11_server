@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -23,8 +24,10 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final MembershipService membershipService;
-
+    
     private static final String NOT_FOUND = "%s with ID %s was not found";
+    private static final String UNAUTHORIZED = "Invalid token";
+    private static final String FORBIDDEN = "Only the admin can %s the group";
 
     @Autowired
     public GroupService(@Qualifier("groupRepository") GroupRepository groupRepository,
@@ -35,70 +38,38 @@ public class GroupService {
         this.membershipService = membershipService;
     }
 
-    public List<Group> getGroups() {
+    public List<Group> getGroups(String token) {
+        validateToken(token);
         return this.groupRepository.findAll();
     }
 
-    public Group getGroupById(Long groupId) {
+    public Group getGroupById(Long groupId, String token) {
+        validateToken(token);
         return this.groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
                     String.format(NOT_FOUND, "Group", groupId)));
     }
 
-    public Group createGroup(Group newGroup) {
-        final Long adminId = newGroup.getAdminId();
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    String.format(NOT_FOUND, "Admin user", adminId)));
+    public Group createGroup(Group newGroup, String token) {
+        validateToken(token);
+        User admin = userRepository.findByToken(token);
         
         newGroup.setAdminId(admin.getId());
-        
-        // Save the group first
         newGroup = groupRepository.save(newGroup);
-        
-        // Create an active membership for the admin using the membership service
         membershipService.addUserToGroup(admin, newGroup, MembershipStatus.ACTIVE, admin.getId());
         
         return newGroup;
     }
 
-    public Group addUserToGroup(Long groupId, Long userId) {
-        Group group = getGroupById(groupId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                    String.format(NOT_FOUND, "User", userId)));
-
-        // Check if user is already a member (has an ACTIVE membership)
-        boolean isAlreadyMember = group.getMemberships().stream()
-                .anyMatch(m -> m.getUser().getId().equals(userId) && 
-                         m.getStatus() == MembershipStatus.ACTIVE);
-        
-        if (!isAlreadyMember) {
-            // Check if there's a pending invitation
-            GroupMembership existingMembership = membershipService.findByUserAndGroup(user, group);
-            
-            if (existingMembership != null) {
-                // Update existing membership to ACTIVE
-                membershipService.updateMembershipStatus(existingMembership, MembershipStatus.ACTIVE);
-            } else {
-                // Create new ACTIVE membership using the membership service
-                membershipService.addUserToGroup(user, group, MembershipStatus.ACTIVE, group.getAdminId());
-            }
+    public Group updateGroup(Long groupId, Group updatedGroup, String token) {
+        validateToken(token);
+        User admin = userRepository.findByToken(token);
+        if (!admin.getId().equals(updatedGroup.getAdminId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(FORBIDDEN, "update"));
         }
 
-        return group;
-    }
-    
-    /**
-     * Updates a group's information
-     * @param groupId the ID of the group to update
-     * @param updatedGroup the group with updated information
-     * @return the updated group
-     */
-    public Group updateGroup(Long groupId, Group updatedGroup) {
-        Group existingGroup = getGroupById(groupId);
+        Group existingGroup = getGroupById(groupId, token);
         
-        // Update only the allowed fields
         if (updatedGroup.getName() != null) {
             existingGroup.setName(updatedGroup.getName());
         }
@@ -111,27 +82,29 @@ public class GroupService {
             existingGroup.setImage(updatedGroup.getImage());
         }
         
-        // Save the updated group
         return groupRepository.save(existingGroup);
     }
-    
-    /**
-     * Deletes a group and all its memberships
-     * @param groupId the ID of the group to delete
-     */
-    public void deleteGroup(Long groupId) {
-        Group group = getGroupById(groupId);
+
+    public void deleteGroup(Long groupId, String token) {
+        validateToken(token);
+        User admin = userRepository.findByToken(token);
+        Group group = getGroupById(groupId, token);
+        if (!admin.getId().equals(group.getAdminId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(FORBIDDEN, "delete"));
+        }
         
-        // Create a copy of the memberships list to avoid ConcurrentModificationException
         List<GroupMembership> memberships = new ArrayList<>(group.getMemberships());
-        
-        // Delete all memberships associated with this group
         for (GroupMembership membership : memberships) {
             User user = membership.getUser();
             membershipService.removeUserFromGroup(user, group);
         }
         
-        // Delete the group itself
         groupRepository.delete(group);
+    }
+
+    private void validateToken(String token) {
+        if (!userRepository.existsByToken(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
+        }
     }
 }

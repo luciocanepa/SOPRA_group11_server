@@ -54,12 +54,15 @@ class UserControllerTest {
 
     List<User> allUsers = Collections.singletonList(user);
 
+    String validToken = "valid-token";
     // this mocks the UserService -> we define above what the userService should
     // return when getUsers() is called
-    given(userService.getUsers()).willReturn(allUsers);
+    given(userService.getUsers(validToken)).willReturn(allUsers);
 
     // when
-    MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON);
+    MockHttpServletRequestBuilder getRequest = get("/users")
+        .contentType(MediaType.APPLICATION_JSON)
+        .header("Authorization", validToken);
 
     // then
     mockMvc.perform(getRequest).andExpect(status().isOk())
@@ -134,12 +137,14 @@ class UserControllerTest {
 
         List<Group> activeGroups = Arrays.asList(group1, group2);
 
+        String validToken = "valid-token";
         // This mocks the UserService -> define what it should return
-        given(userService.getGroupsForUser(userId)).willReturn(activeGroups);
+        given(userService.getGroupsForUser(userId, validToken)).willReturn(activeGroups);
 
         // when
         MockHttpServletRequestBuilder getRequest = get("/users/{userId}/groups", userId)
-                .contentType(MediaType.APPLICATION_JSON);
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", validToken);
 
         // then
         mockMvc.perform(getRequest)
@@ -153,14 +158,16 @@ class UserControllerTest {
     void getUserGroups_userNotFound_throwsNotFoundException() throws Exception {
         // given
         Long nonExistentUserId = 999L;  // This user ID does not exist in the database
+        String validToken = "valid-token";
 
         // Mock the UserService to throw a ResponseStatusException for the non-existent user
-        given(userService.getGroupsForUser(nonExistentUserId))
+        given(userService.getGroupsForUser(nonExistentUserId, validToken))
                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         // when
         MockHttpServletRequestBuilder getRequest = get("/users/{userId}/groups", nonExistentUserId)
-                .contentType(MediaType.APPLICATION_JSON);
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", validToken);
 
         // then
         mockMvc.perform(getRequest)

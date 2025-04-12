@@ -30,8 +30,8 @@ public class GroupController {
 
     @GetMapping("/groups")
     @ResponseStatus(HttpStatus.OK)
-    public List<GroupGetDTO> getAllGroups() {
-        List<Group> groups = groupService.getGroups();
+    public List<GroupGetDTO> getAllGroups(@RequestHeader("Authorization") String token) {
+        List<Group> groups = groupService.getGroups(token);
         List<GroupGetDTO> groupGetDTOs = new ArrayList<>();
 
         for (Group group : groups) {
@@ -42,53 +42,34 @@ public class GroupController {
 
     @GetMapping("/groups/{gid}")
     @ResponseStatus(HttpStatus.OK)
-    public GroupGetDTO getGroup(@PathVariable Long gid) {
-        Group group = groupService.getGroupById(gid);
+    public GroupGetDTO getGroup(@PathVariable Long gid, @RequestHeader("Authorization") String token) {
+        Group group = groupService.getGroupById(gid, token);
         return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(group);
     }
 
     @PostMapping("/groups")
     @ResponseStatus(HttpStatus.CREATED)
-    public GroupGetDTO createGroup(@RequestBody GroupPostDTO groupPostDTO) {
+    public GroupGetDTO createGroup(@RequestBody GroupPostDTO groupPostDTO, @RequestHeader("Authorization") String token) {
         Group groupInput = DTOMapper.INSTANCE.convertGroupPostDTOtoEntity(groupPostDTO);
-
-        Group createdGroup = groupService.createGroup(groupInput);
+        Group createdGroup = groupService.createGroup(groupInput, token);
 
         return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(createdGroup);
     }
 
-    @PostMapping("/groups/{gid}")
-    @ResponseStatus(HttpStatus.OK)
-    public GroupGetDTO addUserToGroup(@PathVariable Long gid, @RequestBody Long userId) {
-        Group updatedGroup = groupService.addUserToGroup(gid, userId);
-        
-        return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(updatedGroup);
-    }
-
-    /**
-     * PUT /groups/{gid} : Update a group
-     * @param gid the ID of the group to update
-     * @param groupPutDTO the group data to update
-     * @return the updated group
-     */
     @PutMapping("/groups/{gid}")
     @ResponseStatus(HttpStatus.OK)
-    public GroupGetDTO updateGroup(@PathVariable Long gid, @RequestBody GroupPutDTO groupPutDTO) {
+    public GroupGetDTO updateGroup(@PathVariable Long gid, @RequestBody GroupPutDTO groupPutDTO, @RequestHeader("Authorization") String token) {
         Group groupInput = DTOMapper.INSTANCE.convertGroupPutDTOtoEntity(groupPutDTO);
         
-        Group updatedGroup = groupService.updateGroup(gid, groupInput);
+        Group updatedGroup = groupService.updateGroup(gid, groupInput, token);
         
         return DTOMapper.INSTANCE.convertEntityToGroupGetDTO(updatedGroup);
     }
 
-    /**
-     * DELETE /groups/{gid} : Delete a group
-     * @param gid the ID of the group to delete
-     */
     @DeleteMapping("/groups/{gid}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteGroup(@PathVariable Long gid) {
-        groupService.deleteGroup(gid);
+    public void deleteGroup(@PathVariable Long gid, @RequestHeader("Authorization") String token) {
+        groupService.deleteGroup(gid, token);
     }
     
 }
