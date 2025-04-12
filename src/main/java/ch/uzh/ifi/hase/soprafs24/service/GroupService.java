@@ -4,7 +4,6 @@ import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
-import ch.uzh.ifi.hase.soprafs24.repository.GroupMembershipRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -87,5 +87,51 @@ public class GroupService {
         }
 
         return group;
+    }
+    
+    /**
+     * Updates a group's information
+     * @param groupId the ID of the group to update
+     * @param updatedGroup the group with updated information
+     * @return the updated group
+     */
+    public Group updateGroup(Long groupId, Group updatedGroup) {
+        Group existingGroup = getGroupById(groupId);
+        
+        // Update only the allowed fields
+        if (updatedGroup.getName() != null) {
+            existingGroup.setName(updatedGroup.getName());
+        }
+        
+        if (updatedGroup.getDescription() != null) {
+            existingGroup.setDescription(updatedGroup.getDescription());
+        }
+        
+        if (updatedGroup.getImage() != null) {
+            existingGroup.setImage(updatedGroup.getImage());
+        }
+        
+        // Save the updated group
+        return groupRepository.save(existingGroup);
+    }
+    
+    /**
+     * Deletes a group and all its memberships
+     * @param groupId the ID of the group to delete
+     */
+    public void deleteGroup(Long groupId) {
+        Group group = getGroupById(groupId);
+        
+        // Create a copy of the memberships list to avoid ConcurrentModificationException
+        List<GroupMembership> memberships = new ArrayList<>(group.getMemberships());
+        
+        // Delete all memberships associated with this group
+        for (GroupMembership membership : memberships) {
+            User user = membership.getUser();
+            membershipService.removeUserFromGroup(user, group);
+        }
+        
+        // Delete the group itself
+        groupRepository.delete(group);
     }
 }

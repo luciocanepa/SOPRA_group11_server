@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
@@ -17,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -114,8 +116,57 @@ class UserControllerTest {
     .andExpect(status().isConflict());
 
   }
+  
+    @Test
+    void getUserGroups_validUserId_groupsReturned() throws Exception {
+        // given
+        Long userId = 1L;
+        User user = new User();
+        user.setId(userId);
+        user.setUsername("testUsername");
+        user.setStatus(UserStatus.ONLINE);
 
-  /**
+        Group group1 = new Group();
+        group1.setName("Group 1");
+
+        Group group2 = new Group();
+        group2.setName("Group 2");
+
+        List<Group> activeGroups = Arrays.asList(group1, group2);
+
+        // This mocks the UserService -> define what it should return
+        given(userService.getGroupsForUser(userId)).willReturn(activeGroups);
+
+        // when
+        MockHttpServletRequestBuilder getRequest = get("/users/{userId}/groups", userId)
+                .contentType(MediaType.APPLICATION_JSON);
+
+        // then
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))  // Check if two groups are returned
+                .andExpect(jsonPath("$[0].name", is(group1.getName())))
+                .andExpect(jsonPath("$[1].name", is(group2.getName())));
+    }
+
+    @Test
+    void getUserGroups_userNotFound_throwsNotFoundException() throws Exception {
+        // given
+        Long nonExistentUserId = 999L;  // This user ID does not exist in the database
+
+        // Mock the UserService to throw a ResponseStatusException for the non-existent user
+        given(userService.getGroupsForUser(nonExistentUserId))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // when
+        MockHttpServletRequestBuilder getRequest = get("/users/{userId}/groups", nonExistentUserId)
+                .contentType(MediaType.APPLICATION_JSON);
+
+        // then
+        mockMvc.perform(getRequest)
+                .andExpect(status().isNotFound());  // Expect 404 Not Found
+    }
+  /*
    * Helper Method to convert userPostDTO into a JSON string such that the input
    * can be processed
    * Input will look like this: {"name": "Test User", "username": "testUsername"}

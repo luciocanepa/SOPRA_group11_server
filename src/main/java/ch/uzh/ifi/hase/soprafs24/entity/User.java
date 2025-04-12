@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Internal User Representation
@@ -22,6 +24,8 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "USERS")
+@Getter
+@Setter
 public class User implements Serializable {
 
   private static final long serialVersionUID = 1L;
@@ -56,96 +60,9 @@ public class User implements Serializable {
   @Column(nullable = true)
   private String profilePicture;
 
-
-
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   private List<GroupMembership> memberships = new ArrayList<>();
 
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(String password) {
-    this.password = password;
-  }
-
-  public String getUsername() {
-    return username;
-  }
-
-  public void setUsername(String username) {
-    this.username = username;
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(String token) {
-    this.token = token;
-  }
-
-  public UserStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(UserStatus status) {
-    this.status = status;
-  }
-
-
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public LocalDate getBirthday() {
-    return birthday;
-  }
-
-  public void setBirthday(LocalDate birthday) {
-    this.birthday = birthday;
-  }
-
-
-  public String getTimezone() {
-    return timezone;
-  }
-
-  public void setTimezone(String timezone) {
-    this.timezone = timezone;
-  }
-
-
-  public String getProfilePicture() {
-    return profilePicture;
-  }
-
-  public void setProfilePicture(String profilePicture) {
-    this.profilePicture = profilePicture;
-  }
-
-
-
-  public List<GroupMembership> getMemberships() {
-    return memberships;
-  }
-
-  public void setMemberships(List<GroupMembership> memberships) {
-    this.memberships = memberships;
-  }
   
   @Transient
   public List<Group> getActiveGroups() {

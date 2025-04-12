@@ -183,7 +183,7 @@ class InvitationServiceTest {
                 .thenReturn(pendingMemberships);
 
         // then
-        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
+        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId(), testToken);
 
         // verify
         assertEquals(1, invitations.size());
@@ -191,18 +191,25 @@ class InvitationServiceTest {
     }
 
     @Test
-    void getGroupInvitations_userNotInGroup_success() {
+    void getGroupInvitations_nonMemberUser_throwsException() {
         // user is not a member of the group
-        testGroup.setMemberships(new ArrayList<>());
-        List<GroupMembership> emptyList = new ArrayList<>();
-        Mockito.when(membershipRepository.findByGroupAndStatus(testGroup, MembershipStatus.PENDING))
-                .thenReturn(emptyList);
+        User nonMemberUser = new User();
+        nonMemberUser.setId(999L);
+        Mockito.when(userService.findByToken(testToken)).thenReturn(nonMemberUser);
+        
+        // Create a new group with no members
+        Group emptyGroup = new Group();
+        emptyGroup.setId(2L);
+        emptyGroup.setName("emptyGroup");
+        emptyGroup.setAdminId(1L);
+        emptyGroup.setMemberships(new ArrayList<>());
+        
+        // Mock the groupService to return our empty group
+        Mockito.when(groupService.getGroupById(2L)).thenReturn(emptyGroup);
 
         // then
-        List<InvitationGetDTO> invitations = invitationService.getGroupInvitations(testGroup.getId());
-        
-        // verify
-        assertEquals(0, invitations.size());
+        assertThrows(ResponseStatusException.class, () -> 
+            invitationService.getGroupInvitations(2L, testToken));
     }
 
     @Test

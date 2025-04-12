@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPutDTO;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,8 +23,11 @@ import java.util.List;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -119,6 +123,65 @@ class GroupControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id", is(group.getId().intValue())))
         .andExpect(jsonPath("$.name", is(group.getName())));
+  }
+
+  @Test
+  void deleteGroup_success() throws Exception {
+    // given
+    doNothing().when(groupService).deleteGroup(Mockito.any());
+
+    // when/then -> do the request + validate the result
+    mockMvc.perform(delete("/groups/1"))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void updateGroup_validInput_groupUpdated() throws Exception {
+    // given
+    Group group = new Group();
+    group.setId(1L);
+    group.setName("updatedGroup");
+    group.setDescription("updated description");
+    group.setImage("updated-image.jpg");
+
+    GroupPutDTO groupPutDTO = new GroupPutDTO();
+    groupPutDTO.setName("updatedGroup");
+    groupPutDTO.setDescription("updated description");
+    groupPutDTO.setImage("updated-image.jpg");
+
+    given(groupService.updateGroup(Mockito.any(), Mockito.any())).willReturn(group);
+
+    // when
+    MockHttpServletRequestBuilder putRequest = put("/groups/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(groupPutDTO));
+
+    // then
+    mockMvc.perform(putRequest)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id", is(group.getId().intValue())))
+        .andExpect(jsonPath("$.name", is(group.getName())))
+        .andExpect(jsonPath("$.description", is(group.getDescription())))
+        .andExpect(jsonPath("$.image", is(group.getImage())));
+  }
+
+  @Test
+  void updateGroup_notFound_throwsException() throws Exception {
+    // given
+    GroupPutDTO groupPutDTO = new GroupPutDTO();
+    groupPutDTO.setName("updatedGroup");
+
+    given(groupService.updateGroup(Mockito.any(), Mockito.any()))
+        .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Group with ID 1 was not found"));
+
+    // when
+    MockHttpServletRequestBuilder putRequest = put("/groups/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(asJsonString(groupPutDTO));
+
+    // then
+    mockMvc.perform(putRequest)
+        .andExpect(status().isNotFound());
   }
 
   private String asJsonString(final Object object) {

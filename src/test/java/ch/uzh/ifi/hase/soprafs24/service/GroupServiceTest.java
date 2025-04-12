@@ -119,4 +119,126 @@ class GroupServiceTest {
     // then -> attempt to get non-existent group -> check that an error is thrown
     assertThrows(ResponseStatusException.class, () -> groupService.getGroupById(1L));
   }
+
+  @Test
+  void deleteGroup_success() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    
+    // Add a membership to the test group
+    testGroup.getMemberships().add(testMembership);
+    
+    // then
+    groupService.deleteGroup(1L);
+    
+    // Verify that the group was deleted
+    Mockito.verify(groupRepository, Mockito.times(1)).delete(testGroup);
+    
+    // Verify that the membership service was called to remove the user from the group
+    Mockito.verify(membershipService, Mockito.times(1)).removeUserFromGroup(testUser, testGroup);
+  }
+  
+  @Test
+  void deleteGroup_notFound_throwsException() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.empty());
+    
+    // then -> attempt to delete non-existent group -> check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> groupService.deleteGroup(1L));
+    
+    // Verify that the group was not deleted
+    Mockito.verify(groupRepository, Mockito.never()).delete(Mockito.any());
+    
+    // Verify that the membership service was not called
+    Mockito.verify(membershipService, Mockito.never()).removeUserFromGroup(Mockito.any(), Mockito.any());
+  }
+  
+  @Test
+  void deleteGroup_noMemberships_success() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    
+    // Ensure the group has no memberships
+    testGroup.setMemberships(new ArrayList<>());
+    
+    // then
+    groupService.deleteGroup(1L);
+    
+    // Verify that the group was deleted
+    Mockito.verify(groupRepository, Mockito.times(1)).delete(testGroup);
+    
+    // Verify that the membership service was not called since there are no memberships
+    Mockito.verify(membershipService, Mockito.never()).removeUserFromGroup(Mockito.any(), Mockito.any());
+  }
+
+  @Test
+  void updateGroup_validInputs_success() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    Mockito.when(groupRepository.save(Mockito.any())).thenReturn(testGroup);
+    
+    // Create a group with updated information
+    Group updatedGroup = new Group();
+    updatedGroup.setName("Updated Group Name");
+    updatedGroup.setDescription("Updated Description");
+    updatedGroup.setImage("Updated Image URL");
+    
+    // Update the test group with the new information
+    testGroup.setName("Updated Group Name");
+    testGroup.setDescription("Updated Description");
+    testGroup.setImage("Updated Image URL");
+    
+    // then
+    Group result = groupService.updateGroup(1L, updatedGroup);
+    
+    // Verify that the group was saved
+    Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());
+    
+    // Verify that the group was updated correctly
+    assertEquals("Updated Group Name", result.getName());
+    assertEquals("Updated Description", result.getDescription());
+    assertEquals("Updated Image URL", result.getImage());
+  }
+  
+  @Test
+  void updateGroup_notFound_throwsException() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.empty());
+    
+    // Create a group with updated information
+    Group updatedGroup = new Group();
+    updatedGroup.setName("Updated Group Name");
+    
+    // then -> attempt to update non-existent group -> check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> groupService.updateGroup(1L, updatedGroup));
+    
+    // Verify that the group was not saved
+    Mockito.verify(groupRepository, Mockito.never()).save(Mockito.any());
+  }
+  
+  @Test
+  void updateGroup_partialUpdate_success() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    Mockito.when(groupRepository.save(Mockito.any())).thenReturn(testGroup);
+    
+    // Create a group with only name updated
+    Group updatedGroup = new Group();
+    updatedGroup.setName("Updated Group Name");
+    
+    // Update the test group with the new name
+    testGroup.setName("Updated Group Name");
+    
+    // then
+    Group result = groupService.updateGroup(1L, updatedGroup);
+    
+    // Verify that the group was saved
+    Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());
+    
+    // Verify that only the name was updated
+    assertEquals("Updated Group Name", result.getName());
+    // Other fields should remain unchanged
+    assertEquals(testGroup.getDescription(), result.getDescription());
+    assertEquals(testGroup.getImage(), result.getImage());
+  }
 }

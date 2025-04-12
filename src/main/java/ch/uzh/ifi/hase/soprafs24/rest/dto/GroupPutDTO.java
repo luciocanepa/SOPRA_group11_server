@@ -5,10 +5,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class GroupPostDTO {
+public class GroupPutDTO {
     private String name;
     private String description;
     private String image;
-    private Long adminId;
 
-}
+} 

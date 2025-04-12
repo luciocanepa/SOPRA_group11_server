@@ -56,14 +56,21 @@ public class UserController {
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
   }
 
-    @GetMapping("/users/{id}/groups")
-    @ResponseStatus(HttpStatus.OK)
-    public List<GroupGetDTO> getGroupsForUser(@PathVariable("id") Long id) {
-        List<Group> groups = userService.getGroupsForUser(id);
-        return groups.stream()
-                .map(DTOMapper.INSTANCE::convertEntityToGroupGetDTO)
-                .toList();
-    }
+  @GetMapping("/users/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  public UserGetDTO getUser(@PathVariable("id") Long id) {
+      User user = userService.findById(id);
+      return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+  }
+
+  @GetMapping("/users/{id}/groups")
+  @ResponseStatus(HttpStatus.OK)
+  public List<GroupGetDTO> getGroupsForUser(@PathVariable("id") Long id) {
+      List<Group> groups = userService.getGroupsForUser(id);
+      return groups.stream()
+              .map(DTOMapper.INSTANCE::convertEntityToGroupGetDTO)
+              .toList();
+  }
 
   @PostMapping("/users/login")
   @ResponseStatus(HttpStatus.OK)
@@ -77,17 +84,6 @@ public class UserController {
     // convert internal representation of user back to API
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedUser);
   }
-
-
-
-
-
-
-
-
-
-  
-
 
   @GetMapping("/users/{id}")
   @ResponseStatus(HttpStatus.OK)
@@ -108,5 +104,17 @@ public class UserController {
   }
 
 
+
+}
+
+  @PostMapping("users/{id}/logout")
+  @ResponseStatus(HttpStatus.OK)
+  public UserGetDTO logoutUser(@PathVariable("id") Long id) {
+    User user = userService.getUser(id);
+
+    user = userService.logoutUser(user);
+    
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+  }
 
 }

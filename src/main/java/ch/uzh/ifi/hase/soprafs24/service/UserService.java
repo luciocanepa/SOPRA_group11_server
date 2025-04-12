@@ -11,10 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +33,15 @@ public class UserService {
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
   private final UserRepository userRepository;
-  private final BCryptPasswordEncoder passwordEncoder;
+  private final PasswordEncoder passwordEncoder;
   private final MembershipService membershipService;
 
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
-                    MembershipService membershipService) {
+                    MembershipService membershipService,
+                    PasswordEncoder passwordEncoder) {
     this.userRepository = userRepository;
-    this.passwordEncoder = new BCryptPasswordEncoder();
+    this.passwordEncoder = passwordEncoder;
     this.membershipService = membershipService;
   }
 
@@ -48,11 +49,20 @@ public class UserService {
     return this.userRepository.findAll();
   }
 
+  public User getUser(Long id) {
+    
+    return this.userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    
+  }
+
   public User createUser(User newUser) {
     newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
+    newUser.setStatus(UserStatus.ONLINE);
 
     checkIfUserExists(newUser);
+
+    // Encode the password before saving
+    newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
 
     // save user given the certain data
     newUser = userRepository.save(newUser);
@@ -77,7 +87,9 @@ public class UserService {
     userByUsername = userRepository.save(userByUsername);
     userRepository.flush();
 
-    log.debug("User logged in: {}", userByUsername);
+    updateStatus(userByUsername);
+    userByUsername.setStatus(UserStatus.ONLINE);
+    
     return userByUsername;
   }
 
@@ -110,6 +122,14 @@ public class UserService {
     user.setStatus(UserStatus.OFFLINE);
     userRepository.save(user);
     userRepository.flush();
+  }
+
+  public User logoutUser(User user) {
+    user.setStatus(UserStatus.OFFLINE);
+    userRepository.save(user);
+    userRepository.flush();
+    return user;
+
   }
 
   public List<Group> getGroupsForUser(Long userId) {
