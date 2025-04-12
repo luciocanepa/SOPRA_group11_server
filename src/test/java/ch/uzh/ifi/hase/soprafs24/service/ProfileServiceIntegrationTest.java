@@ -48,7 +48,6 @@ public class ProfileServiceIntegrationTest {
     @Test
     public void updateUser_validInputs_success() {
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken(testUser.getToken());
         userPutDTO.setUsername("newUsername");
         userPutDTO.setName("newName");
         userPutDTO.setPassword("newPassword");
@@ -56,7 +55,7 @@ public class ProfileServiceIntegrationTest {
         userPutDTO.setTimezone("CET");
         userPutDTO.setProfilePicture("new.jpg");
 
-        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO);
+        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO, testUser.getToken());
 
         assertNotNull(updatedUser.getId());
         assertEquals(userPutDTO.getUsername(), updatedUser.getUsername());
@@ -73,10 +72,10 @@ public class ProfileServiceIntegrationTest {
     @Test
     public void updateUser_invalidToken_throwsException() {
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken("invalidToken");
+        userPutDTO.setUsername("newUsername");
 
         assertThrows(ResponseStatusException.class, () -> {
-            userService.putUserEdits(testUser.getId(), userPutDTO);
+            userService.putUserEdits(testUser.getId(), userPutDTO, "invalidToken");
         });
     }
 
@@ -91,11 +90,10 @@ public class ProfileServiceIntegrationTest {
         userRepository.flush();
 
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken(testUser.getToken());
         userPutDTO.setUsername("anotherUser");
 
         assertThrows(ResponseStatusException.class, () -> {
-            userService.putUserEdits(testUser.getId(), userPutDTO);
+            userService.putUserEdits(testUser.getId(), userPutDTO, testUser.getToken());
         });
     }
 
@@ -119,11 +117,10 @@ public class ProfileServiceIntegrationTest {
     @Test
     public void updateUser_partialFields_success() {
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken(testUser.getToken());
         userPutDTO.setName("updatedName");
         userPutDTO.setTimezone("PST");
 
-        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO);
+        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO, testUser.getToken());
 
         assertEquals("updatedName", updatedUser.getName());
         assertEquals("PST", updatedUser.getTimezone());
@@ -134,9 +131,8 @@ public class ProfileServiceIntegrationTest {
     @Test
     public void updateUser_emptyFields_retainOldValues() {
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken(testUser.getToken());
 
-        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO);
+        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO, testUser.getToken());
 
         assertEquals(testUser.getUsername(), updatedUser.getUsername());
         assertEquals(testUser.getName(), updatedUser.getName());
@@ -154,21 +150,19 @@ public class ProfileServiceIntegrationTest {
         userRepository.saveAndFlush(otherUser);
 
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken("token2");
         userPutDTO.setName("HackedName");
 
         assertThrows(ResponseStatusException.class, () -> {
-            userService.putUserEdits(testUser.getId(), userPutDTO);
+            userService.putUserEdits(testUser.getId(), userPutDTO, "token2");
         });
     }
 
     @Test
     public void updateUser_passwordIsEncrypted() {
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken(testUser.getToken());
         userPutDTO.setPassword("newSecret");
 
-        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO);
+        User updatedUser = userService.putUserEdits(testUser.getId(), userPutDTO, testUser.getToken());
 
         assertNotEquals("newSecret", updatedUser.getPassword());
         assertNotNull(updatedUser.getPassword());
@@ -178,11 +172,10 @@ public class ProfileServiceIntegrationTest {
     @Test
     public void updateUser_nullToken_throwsException() {
         UserPutDTO userPutDTO = new UserPutDTO();
-        userPutDTO.setToken(null);
         userPutDTO.setUsername("oopsie");
 
         assertThrows(ResponseStatusException.class, () -> {
-            userService.putUserEdits(testUser.getId(), userPutDTO);
+            userService.putUserEdits(testUser.getId(), userPutDTO, null);
         });
     }
 }

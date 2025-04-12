@@ -90,6 +90,5 @@ public class GroupController {
     public void deleteGroup(@PathVariable Long gid) {
         groupService.deleteGroup(gid);
     }
-
     
 }

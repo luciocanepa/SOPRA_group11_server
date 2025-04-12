@@ -32,6 +32,11 @@ public class UserService {
 
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
+  private static final String NOT_FOUND = "%s with ID %s was not found";
+  private static final String CONFLICT = "User with username %s already exists";
+  private static final String UNAUTHORIZED = "Invalid credentials";
+  private static final String FORBIDDEN = "User is not authorized to perform this action";
+
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final MembershipService membershipService;
@@ -51,7 +56,7 @@ public class UserService {
 
   public User getUser(Long id) {
     
-    return this.userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    return this.userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", id)));
     
   }
 
@@ -76,11 +81,11 @@ public class UserService {
     User userByUsername = userRepository.findByUsername(user.getUsername());
 
     if (userByUsername == null) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
 
     if (!passwordEncoder.matches(user.getPassword(), userByUsername.getPassword())) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
 
     userByUsername.setStatus(UserStatus.ONLINE);
@@ -105,16 +110,14 @@ public class UserService {
 
   public User findById(Long id) {
     return userRepository.findById(id)
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", id)));
   }
 
   private void checkIfUserExists(User userToBeCreated) {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
     if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
-          String.format(baseErrorMessage, "username", "is"));
+      throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(CONFLICT, userToBeCreated.getUsername()));
     }
   }
 
@@ -134,28 +137,17 @@ public class UserService {
 
   public List<Group> getGroupsForUser(Long userId) {
     User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
 
     // Use the MembershipService instead of directly accessing the user's active groups
     return membershipService.getActiveGroupsForUser(user);
   }
 
-
-
-
-  public User getUser(Long userId) {
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    return user;
-  }
-
-
-
   public User putUserEdits(Long id , UserPutDTO edits , String token ) {
     User user = findByToken(token); // validity of token already checked by the method
 
     if (!user.getId().equals(id)) { //id we got via token does not match id from the url
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unauthorized to edit this user");
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
     }
     //if the field for username has a value and the new username equals another then it will not work
     if (edits.getUsername() != null) {

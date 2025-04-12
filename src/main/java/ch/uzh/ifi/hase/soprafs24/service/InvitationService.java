@@ -29,9 +29,10 @@ public class InvitationService {
     private final UserService userService;
     private final MembershipService membershipService;
 
-    private static final String notFound = "%s with ID %s was not found";
-    private static final String forbidden = "User with ID %s is not a member of the group";
-    private static final String conflict = "User with ID %s is already a member of the group";
+    private static final String NOT_FOUND = "%s with ID %s was not found";
+    private static final String FORBIDDEN = "User with ID %s is not authorized to perform this action";
+    private static final String CONFLICT = "User with ID %s is already a member of the group";
+    private static final String INVITATION_EXISTS = "Invitation for user with ID %s to group with ID %s already exists";
 
     @Autowired
     public InvitationService(
@@ -61,14 +62,14 @@ public class InvitationService {
 
         // The group should contain the inviter
         if (!group.getActiveUsers().contains(inviter)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(forbidden, inviter.getId()));
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(FORBIDDEN, inviter.getId()));
         }
         
         // The invitee should not be a member of the group
         User invitee = userRepository.findById(inviteeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(notFound, "User", inviteeId)));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", inviteeId)));
         if (group.getActiveUsers().contains(invitee)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(conflict, inviteeId));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(CONFLICT, inviteeId));
         }
         
         // Check if an invitation already exists
@@ -100,7 +101,7 @@ public class InvitationService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        String.format(notFound, "User", userId)));
+                        String.format(NOT_FOUND, "User", userId)));
 
         List<InvitationGetDTO> invitations = new ArrayList<>();
         List<GroupMembership> pendingMemberships = membershipRepository.findByUserAndStatus(user, MembershipStatus.PENDING);
@@ -123,7 +124,7 @@ public class InvitationService {
         // Check if the requesting user is a member of the group
         boolean isMember = group.getActiveUsers().contains(requestingUser);
         if (!isMember) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(forbidden, requestingUser.getId()));
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(FORBIDDEN, requestingUser.getId()));
         }
         
         List<InvitationGetDTO> invitations = new ArrayList<>();
@@ -149,7 +150,7 @@ public class InvitationService {
         
         if (!membership.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
-                    String.format(forbidden, user.getId()));
+                    String.format(FORBIDDEN, user.getId()));
         }
         
         membership.setStatus(MembershipStatus.ACTIVE);
@@ -167,11 +168,11 @@ public class InvitationService {
         User user = userService.findByToken(token);
         GroupMembership membership = membershipRepository.findById(invitationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                        String.format(notFound, "Invitation", invitationId)));
+                        String.format(NOT_FOUND, "Invitation", invitationId)));
         
         if (!membership.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
-                    String.format(forbidden, user.getId()));
+                    String.format(FORBIDDEN, user.getId()));
         }
         
         membership.setStatus(MembershipStatus.REJECTED);
