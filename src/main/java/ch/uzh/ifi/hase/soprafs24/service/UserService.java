@@ -4,6 +4,8 @@ import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPutDTO;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,4 +139,62 @@ public class UserService {
     // Use the MembershipService instead of directly accessing the user's active groups
     return membershipService.getActiveGroupsForUser(user);
   }
+
+
+
+
+  public User getUser(Long userId) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    return user;
+  }
+
+
+
+  public User putUserEdits(Long id , UserPutDTO edits , String token ) {
+    User user = findByToken(token); // validity of token already checked by the method
+
+    if (!user.getId().equals(id)) { //id we got via token does not match id from the url
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Unauthorized to edit this user");
+    }
+    //if the field for username has a value and the new username equals another then it will not work
+    if (edits.getUsername() != null) {
+      if (edits.getUsername().equals(user.getUsername())) {
+          // nothing happens when the entered username is the same
+      }
+      else if (userRepository.findByUsername(edits.getUsername()) != null) {
+          throw new ResponseStatusException(HttpStatus.CONFLICT, "There is another user with this username, choose another one.");
+      }
+      else {
+          user.setUsername(edits.getUsername());
+      }
+  }
+    
+    if (edits.getPassword() != null) {
+      user.setPassword(passwordEncoder.encode(edits.getPassword()));
+    }
+
+    if (edits.getName() != null) {
+      user.setName(edits.getName());
+    }
+
+    if (edits.getBirthday() != null) {
+      user.setBirthday(edits.getBirthday());
+    }
+
+    if (edits.getTimezone() != null) {
+      user.setTimezone(edits.getTimezone());
+    }
+
+    if (edits.getProfilePicture() != null) {
+      user.setProfilePicture(edits.getProfilePicture());
+    } 
+
+    userRepository.save(user);
+    userRepository.flush();
+    return user;
+  }
+
+
+
 }

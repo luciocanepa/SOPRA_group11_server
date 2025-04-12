@@ -5,6 +5,7 @@ import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -45,8 +46,23 @@ public class User implements Serializable {
   @Column(nullable = false)
   private UserStatus status;
 
+
+  @Column(nullable = true)
+  private String name;
+
+  @Column(nullable = true)
+  private LocalDate birthday;
+
+  @Column(nullable = true)
+  private String timezone;
+
+  @Lob
+  @Column(nullable = true)
+  private String profilePicture;
+
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   private List<GroupMembership> memberships = new ArrayList<>();
+
   
   @Transient
   public List<Group> getActiveGroups() {
