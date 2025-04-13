@@ -99,7 +99,7 @@ public class ProfileServiceIntegrationTest {
 
     @Test
     public void getUserProfile_validId_success() {
-        User user = userService.getUser(testUser.getId());
+        User user = userService.getUserById(testUser.getId(), testUser.getToken());
 
         assertNotNull(user);
         assertEquals(testUser.getId(), user.getId());
@@ -110,7 +110,7 @@ public class ProfileServiceIntegrationTest {
     @Test
     public void getUserProfile_invalidId_throwsException() {
         assertThrows(ResponseStatusException.class, () -> {
-            userService.getUser(999L);
+            userService.getUserById(999L, testUser.getToken());
         });
     }
 

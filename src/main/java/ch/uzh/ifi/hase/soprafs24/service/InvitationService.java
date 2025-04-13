@@ -57,7 +57,7 @@ public class InvitationService {
      * @return the created membership entity
      */
     public GroupMembership createInvitation(Long groupId, String token, Long inviteeId) {
-        Group group = groupService.getGroupById(groupId);
+        Group group = groupService.getGroupById(groupId, token);
         User inviter = userService.findByToken(token);
 
         // The group should contain the inviter
@@ -118,7 +118,7 @@ public class InvitationService {
      * @return list of pending invitations
      */
     public List<InvitationGetDTO> getGroupInvitations(Long groupId, String token) {
-        Group group = groupService.getGroupById(groupId);
+        Group group = groupService.getGroupById(groupId, token);
         User requestingUser = userService.findByToken(token);
         
         // Check if the requesting user is a member of the group

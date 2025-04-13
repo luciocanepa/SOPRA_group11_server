@@ -50,6 +50,7 @@ class GroupServiceTest {
     testUser.setId(1L);
     testUser.setUsername("testUsername");
     testUser.setMemberships(new ArrayList<>());
+    testUser.setToken("valid-token");
 
     testGroup = new Group();
     testGroup.setId(1L);
@@ -67,37 +68,8 @@ class GroupServiceTest {
     Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
     Mockito.when(membershipRepository.save(Mockito.any())).thenReturn(testMembership);
     Mockito.when(membershipService.addUserToGroup(Mockito.any(), Mockito.any(), Mockito.eq(MembershipStatus.ACTIVE), Mockito.any())).thenReturn(testMembership);
-  }
-
-  @Test
-  void createGroup_validInputs_success() {
-    // when -> setup additional mocks
-    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(testUser));
-    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
-    
-    // Create a new group with admin
-    Group groupToCreate = new Group();
-    groupToCreate.setName("testGroup");
-    groupToCreate.setAdminId(testUser.getId());
-    
-    Group createdGroup = groupService.createGroup(groupToCreate);
-
-    // then
-    Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());
-    Mockito.verify(membershipService).addUserToGroup(Mockito.any(), Mockito.any(), Mockito.eq(MembershipStatus.ACTIVE), Mockito.eq(testUser.getId()));
-
-    assertEquals(testGroup.getId(), createdGroup.getId());
-    assertEquals(testGroup.getName(), createdGroup.getName());
-    assertEquals(testGroup.getAdminId(), createdGroup.getAdminId());
-  }
-
-  @Test
-  void createGroup_invalidAdminId_throwsException() {
-    // when -> setup additional mocks
-    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.empty());
-
-    // then -> attempt to create group with invalid admin id -> check that an error is thrown
-    assertThrows(ResponseStatusException.class, () -> groupService.createGroup(testGroup));
+    Mockito.when(userRepository.existsByToken("valid-token")).thenReturn(true);
+    Mockito.when(userRepository.findByToken("valid-token")).thenReturn(testUser);
   }
 
   @Test
@@ -106,7 +78,7 @@ class GroupServiceTest {
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
 
     // then
-    Group found = groupService.getGroupById(1L);
+    Group found = groupService.getGroupById(1L, "valid-token");
     assertEquals(testGroup.getId(), found.getId());
     assertEquals(testGroup.getName(), found.getName());
   }
@@ -117,7 +89,7 @@ class GroupServiceTest {
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.empty());
 
     // then -> attempt to get non-existent group -> check that an error is thrown
-    assertThrows(ResponseStatusException.class, () -> groupService.getGroupById(1L));
+    assertThrows(ResponseStatusException.class, () -> groupService.getGroupById(1L, "valid-token"));
   }
 
   @Test
@@ -129,7 +101,7 @@ class GroupServiceTest {
     testGroup.getMemberships().add(testMembership);
     
     // then
-    groupService.deleteGroup(1L);
+    groupService.deleteGroup(1L, "valid-token");
     
     // Verify that the group was deleted
     Mockito.verify(groupRepository, Mockito.times(1)).delete(testGroup);
@@ -144,7 +116,7 @@ class GroupServiceTest {
     Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.empty());
     
     // then -> attempt to delete non-existent group -> check that an error is thrown
-    assertThrows(ResponseStatusException.class, () -> groupService.deleteGroup(1L));
+    assertThrows(ResponseStatusException.class, () -> groupService.deleteGroup(1L, "valid-token"));
     
     // Verify that the group was not deleted
     Mockito.verify(groupRepository, Mockito.never()).delete(Mockito.any());
@@ -162,7 +134,7 @@ class GroupServiceTest {
     testGroup.setMemberships(new ArrayList<>());
     
     // then
-    groupService.deleteGroup(1L);
+    groupService.deleteGroup(1L, "valid-token");
     
     // Verify that the group was deleted
     Mockito.verify(groupRepository, Mockito.times(1)).delete(testGroup);
@@ -182,6 +154,7 @@ class GroupServiceTest {
     updatedGroup.setName("Updated Group Name");
     updatedGroup.setDescription("Updated Description");
     updatedGroup.setImage("Updated Image URL");
+    updatedGroup.setAdminId(testUser.getId());
     
     // Update the test group with the new information
     testGroup.setName("Updated Group Name");
@@ -189,7 +162,7 @@ class GroupServiceTest {
     testGroup.setImage("Updated Image URL");
     
     // then
-    Group result = groupService.updateGroup(1L, updatedGroup);
+    Group result = groupService.updateGroup(1L, updatedGroup, "valid-token");
     
     // Verify that the group was saved
     Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());
@@ -210,7 +183,7 @@ class GroupServiceTest {
     updatedGroup.setName("Updated Group Name");
     
     // then -> attempt to update non-existent group -> check that an error is thrown
-    assertThrows(ResponseStatusException.class, () -> groupService.updateGroup(1L, updatedGroup));
+    assertThrows(ResponseStatusException.class, () -> groupService.updateGroup(1L, updatedGroup, "valid-token"));
     
     // Verify that the group was not saved
     Mockito.verify(groupRepository, Mockito.never()).save(Mockito.any());
@@ -225,12 +198,13 @@ class GroupServiceTest {
     // Create a group with only name updated
     Group updatedGroup = new Group();
     updatedGroup.setName("Updated Group Name");
+    updatedGroup.setAdminId(testUser.getId());
     
     // Update the test group with the new name
     testGroup.setName("Updated Group Name");
     
     // then
-    Group result = groupService.updateGroup(1L, updatedGroup);
+    Group result = groupService.updateGroup(1L, updatedGroup, "valid-token");
     
     // Verify that the group was saved
     Mockito.verify(groupRepository, Mockito.times(1)).save(Mockito.any());

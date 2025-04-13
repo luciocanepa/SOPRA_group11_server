@@ -9,6 +9,4 @@ public class GroupPostDTO {
     private String name;
     private String description;
     private String image;
-    private Long adminId;
-
 }

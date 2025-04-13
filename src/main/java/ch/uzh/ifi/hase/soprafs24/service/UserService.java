@@ -32,14 +32,14 @@ public class UserService {
 
   private final Logger log = LoggerFactory.getLogger(UserService.class);
 
-  private static final String NOT_FOUND = "%s with ID %s was not found";
-  private static final String CONFLICT = "User with username %s already exists";
-  private static final String UNAUTHORIZED = "Invalid credentials";
-  private static final String FORBIDDEN = "User is not authorized to perform this action";
-
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final MembershipService membershipService;
+
+  private static final String NOT_FOUND = "%s with ID %s was not found";
+  private static final String CONFLICT = "User with username %s already exists";
+  private static final String UNAUTHORIZED = "Invalid token";
+  private static final String FORBIDDEN = "User is not authorized to perform this action";
 
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
@@ -50,14 +50,14 @@ public class UserService {
     this.membershipService = membershipService;
   }
 
-  public List<User> getUsers() {
+  public List<User> getUsers(String token) {
+    validateToken(token);
     return this.userRepository.findAll();
   }
 
-  public User getUser(Long id) {
-    
+  public User getUserById(Long id, String token) {
+    validateToken(token);
     return this.userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", id)));
-    
   }
 
   public User createUser(User newUser) {
@@ -102,7 +102,7 @@ public class UserService {
     User userByToken = userRepository.findByToken(token);
 
     if (userByToken == null) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
 
     return userByToken;
@@ -135,11 +135,15 @@ public class UserService {
 
   }
 
-  public List<Group> getGroupsForUser(Long userId) {
+  public List<Group> getGroupsForUser(Long userId, String token) {
+    validateToken(token);
     User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
 
-    // Use the MembershipService instead of directly accessing the user's active groups
+    if (!user.getId().equals(userId)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
+    }
+
     return membershipService.getActiveGroupsForUser(user);
   }
 
@@ -155,7 +159,7 @@ public class UserService {
           // nothing happens when the entered username is the same
       }
       else if (userRepository.findByUsername(edits.getUsername()) != null) {
-          throw new ResponseStatusException(HttpStatus.CONFLICT, "There is another user with this username, choose another one.");
+          throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(CONFLICT, edits.getUsername()));
       }
       else {
           user.setUsername(edits.getUsername());
@@ -187,6 +191,10 @@ public class UserService {
     return user;
   }
 
-
+  private void validateToken(String token) {
+    if (!userRepository.existsByToken(token)) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
+    }
+  }
 
 }

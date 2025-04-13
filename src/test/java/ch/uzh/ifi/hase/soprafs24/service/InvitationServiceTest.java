@@ -95,13 +95,14 @@ class InvitationServiceTest {
 
         // Setup common mocks
         Mockito.when(userService.findByToken(testToken)).thenReturn(testInviter);
-        Mockito.when(groupService.getGroupById(testGroup.getId())).thenReturn(testGroup);
+        Mockito.when(groupService.getGroupById(testGroup.getId(), testToken)).thenReturn(testGroup);
         Mockito.when(userRepository.findById(testInvitee.getId())).thenReturn(Optional.of(testInvitee));
         Mockito.when(membershipRepository.save(Mockito.any())).thenReturn(testMembership);
         Mockito.when(groupRepository.save(Mockito.any())).thenReturn(testGroup);
         Mockito.when(userRepository.save(Mockito.any())).thenReturn(testInvitee);
         Mockito.when(membershipService.findByUserAndGroup(Mockito.any(), Mockito.any())).thenReturn(null);
         Mockito.when(membershipService.addUserToGroup(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(testMembership);
+        Mockito.when(userRepository.existsByToken(testToken)).thenReturn(true);
     }
 
     @Test
@@ -205,7 +206,7 @@ class InvitationServiceTest {
         emptyGroup.setMemberships(new ArrayList<>());
         
         // Mock the groupService to return our empty group
-        Mockito.when(groupService.getGroupById(2L)).thenReturn(emptyGroup);
+        Mockito.when(groupService.getGroupById(2L, testToken)).thenReturn(emptyGroup);
 
         // then
         assertThrows(ResponseStatusException.class, () -> 

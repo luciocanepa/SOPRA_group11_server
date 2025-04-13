@@ -50,37 +50,40 @@ class UserServiceTest {
     testUser.setId(1L);
     testUser.setUsername("testUsername");
     testUser.setPassword("testPassword");
+    testUser.setToken("valid-token");
 
-      group1 = new Group();
-      group1.setId(1L);
-      group1.setName("Group 1");
+    group1 = new Group();
+    group1.setId(1L);
+    group1.setName("Group 1");
 
-      group2 = new Group();
-      group2.setId(2L);
-      group2.setName("Group 2");
+    group2 = new Group();
+    group2.setId(2L);
+    group2.setName("Group 2");
 
-      membership1 = new GroupMembership();
-      membership1.setGroup(group1);
-      membership1.setStatus(MembershipStatus.ACTIVE);
+    membership1 = new GroupMembership();
+    membership1.setGroup(group1);
+    membership1.setStatus(MembershipStatus.ACTIVE);
 
-      membership2 = new GroupMembership();
-      membership2.setGroup(group2);
-      membership2.setStatus(MembershipStatus.ACTIVE);
+    membership2 = new GroupMembership();
+    membership2.setGroup(group2);
+    membership2.setStatus(MembershipStatus.ACTIVE);
 
-      testUser.setMemberships(Arrays.asList(membership1, membership2));
+    testUser.setMemberships(Arrays.asList(membership1, membership2));
 
     // when -> any object is being save in the userRepository -> return the dummy
     // testUser
-        Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
-        Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
-        
-        // Mock the membershipService to return the groups
-        Mockito.when(membershipService.getActiveGroupsForUser(Mockito.any(User.class)))
-            .thenReturn(Arrays.asList(group1, group2));
-        
-        // Mock password encoder behavior
-        Mockito.when(passwordEncoder.encode(Mockito.anyString())).thenReturn("encodedPassword");
-        Mockito.when(passwordEncoder.matches(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
+    Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+    Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
+    Mockito.when(userRepository.existsByToken("valid-token")).thenReturn(true);
+    Mockito.when(userRepository.findByToken("valid-token")).thenReturn(testUser);
+    
+    // Mock the membershipService to return the groups
+    Mockito.when(membershipService.getActiveGroupsForUser(Mockito.any(User.class)))
+        .thenReturn(Arrays.asList(group1, group2));
+    
+    // Mock password encoder behavior
+    Mockito.when(passwordEncoder.encode(Mockito.anyString())).thenReturn("encodedPassword");
+    Mockito.when(passwordEncoder.matches(Mockito.anyString(), Mockito.anyString())).thenReturn(true);
   }
 
   @Test
@@ -174,7 +177,7 @@ class UserServiceTest {
   @Test
   void getGroupsForUser_shouldReturnActiveGroups_whenUserExists() {
       // when
-      List<Group> groups = userService.getGroupsForUser(testUser.getId());
+      List<Group> groups = userService.getGroupsForUser(testUser.getId(), "valid-token");
 
       // then
       assertNotNull(groups);
@@ -193,7 +196,7 @@ class UserServiceTest {
       Mockito.when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
 
       // when / then
-      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(nonExistentUserId));
+      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(nonExistentUserId, "valid-token"));
   }
 
   // Test if the method returns an empty list in the edge case if the user is part of no groups
@@ -209,7 +212,7 @@ class UserServiceTest {
       Mockito.when(membershipService.getActiveGroupsForUser(userWithNoGroups)).thenReturn(Collections.emptyList());
 
       // when
-      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId());
+      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId(), "valid-token");
 
       // then
       assertNotNull(groups);

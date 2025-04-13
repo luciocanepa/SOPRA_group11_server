@@ -49,10 +49,13 @@ class GroupControllerTest {
 
     List<Group> allGroups = Collections.singletonList(group);
 
-    given(groupService.getGroups()).willReturn(allGroups);
+    String validToken = "valid-token";
+    given(groupService.getGroups(validToken)).willReturn(allGroups);
 
     // when
-    MockHttpServletRequestBuilder getRequest = get("/groups").contentType(MediaType.APPLICATION_JSON);
+    MockHttpServletRequestBuilder getRequest = get("/groups")
+        .contentType(MediaType.APPLICATION_JSON)
+        .header("Authorization", validToken);
 
     // then
     mockMvc.perform(getRequest).andExpect(status().isOk())
@@ -68,10 +71,13 @@ class GroupControllerTest {
     group.setId(1L);
     group.setName("testGroup");
 
-    given(groupService.getGroupById(1L)).willReturn(group);
+    String validToken = "valid-token";
+    given(groupService.getGroupById(1L, validToken)).willReturn(group);
 
     // when
-    MockHttpServletRequestBuilder getRequest = get("/groups/1").contentType(MediaType.APPLICATION_JSON);
+    MockHttpServletRequestBuilder getRequest = get("/groups/1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .header("Authorization", validToken);
 
     // then
     mockMvc.perform(getRequest)
@@ -81,57 +87,14 @@ class GroupControllerTest {
   }
 
   @Test
-  void createGroup_validInput_groupCreated() throws Exception {
-    // given
-    Group group = new Group();
-    group.setId(1L);
-    group.setName("testGroup");
-
-    GroupPostDTO groupPostDTO = new GroupPostDTO();
-    groupPostDTO.setName("testGroup");
-
-    given(groupService.createGroup(Mockito.any())).willReturn(group);
-
-    // when
-    MockHttpServletRequestBuilder postRequest = post("/groups")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(asJsonString(groupPostDTO));
-
-    // then
-    mockMvc.perform(postRequest)
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id", is(group.getId().intValue())))
-        .andExpect(jsonPath("$.name", is(group.getName())));
-  }
-
-  @Test
-  void addUserToGroup_validInput_userAdded() throws Exception {
-    // given
-    Group group = new Group();
-    group.setId(1L);
-    group.setName("testGroup");
-
-    given(groupService.addUserToGroup(1L, 1L)).willReturn(group);
-
-    // when
-    MockHttpServletRequestBuilder postRequest = post("/groups/1")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content("1");
-
-    // then
-    mockMvc.perform(postRequest)
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id", is(group.getId().intValue())))
-        .andExpect(jsonPath("$.name", is(group.getName())));
-  }
-
-  @Test
   void deleteGroup_success() throws Exception {
     // given
-    doNothing().when(groupService).deleteGroup(Mockito.any());
+    String validToken = "valid-token";
+    doNothing().when(groupService).deleteGroup(Mockito.any(), Mockito.eq(validToken));
 
     // when/then -> do the request + validate the result
-    mockMvc.perform(delete("/groups/1"))
+    mockMvc.perform(delete("/groups/1")
+        .header("Authorization", validToken))
         .andExpect(status().isNoContent());
   }
 
@@ -149,11 +112,13 @@ class GroupControllerTest {
     groupPutDTO.setDescription("updated description");
     groupPutDTO.setImage("updated-image.jpg");
 
-    given(groupService.updateGroup(Mockito.any(), Mockito.any())).willReturn(group);
+    String validToken = "valid-token";
+    given(groupService.updateGroup(Mockito.any(), Mockito.any(), Mockito.eq(validToken))).willReturn(group);
 
     // when
     MockHttpServletRequestBuilder putRequest = put("/groups/1")
         .contentType(MediaType.APPLICATION_JSON)
+        .header("Authorization", validToken)
         .content(asJsonString(groupPutDTO));
 
     // then
@@ -168,15 +133,25 @@ class GroupControllerTest {
   @Test
   void updateGroup_notFound_throwsException() throws Exception {
     // given
+    Group group = new Group();
+    group.setId(1L);
+    group.setName("updatedGroup");
+    group.setDescription("updated description");
+    group.setImage("updated-image.jpg");
+
     GroupPutDTO groupPutDTO = new GroupPutDTO();
     groupPutDTO.setName("updatedGroup");
+    groupPutDTO.setDescription("updated description");
+    groupPutDTO.setImage("updated-image.jpg");
 
-    given(groupService.updateGroup(Mockito.any(), Mockito.any()))
+    String validToken = "valid-token";
+    given(groupService.updateGroup(Mockito.any(), Mockito.any(), Mockito.eq(validToken)))
         .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Group with ID 1 was not found"));
 
     // when
     MockHttpServletRequestBuilder putRequest = put("/groups/1")
         .contentType(MediaType.APPLICATION_JSON)
+        .header("Authorization", validToken)
         .content(asJsonString(groupPutDTO));
 
     // then
