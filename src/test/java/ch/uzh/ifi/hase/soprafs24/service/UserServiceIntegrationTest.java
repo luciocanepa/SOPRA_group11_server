@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,8 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -225,6 +228,38 @@ class UserServiceIntegrationTest {
 
       //check that error is thrown
       assertThrows(ResponseStatusException.class, () -> userService.loginUser(testUser2));
+
+    }
+
+    @Test
+    void updateUserTimer_validInput_success() {
+
+      User testUser = new User();
+      testUser.setUsername("testUsername");
+      testUser.setPassword("testPassword");
+      testUser = userService.createUser(testUser);
+
+      UserTimerPutDTO testDTO = new UserTimerPutDTO();
+      testDTO.setStartTime(LocalDateTime.parse("2023-11-15T14:30:45"));
+      testDTO.setDuration(Duration.parse("PT25M"));
+      testDTO.setStatus(UserStatus.WORK);
+
+      User updatedUser = userService.updateStatus(testDTO, testUser.getId());
+
+      assertEquals(testDTO.getStartTime(), updatedUser.getStartTime());
+      assertEquals(testDTO.getDuration(), updatedUser.getDuration());
+      assertEquals(testDTO.getStatus(), updatedUser.getStatus());
+    }
+
+    @Test
+    void updateUserTimer_missingUser_throwsException() {
+
+      UserTimerPutDTO testDTO = new UserTimerPutDTO();
+      testDTO.setStartTime(LocalDateTime.parse("2023-11-15T14:30:45"));
+      testDTO.setDuration(Duration.parse("PT25M"));
+      testDTO.setStatus(UserStatus.WORK);
+
+      assertThrows(ResponseStatusException.class, () -> userService.updateStatus(testDTO,1L));
 
     }
 }

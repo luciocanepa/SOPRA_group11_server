@@ -6,6 +6,8 @@ import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -15,6 +17,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -136,7 +140,7 @@ class UserServiceTest {
     Mockito.verify(userRepository, Mockito.times(1)).findByUsername(Mockito.any());
     Mockito.verify(passwordEncoder, Mockito.times(1)).matches(loginUser.getPassword(), testUser.getPassword());
     
-    Mockito.verify(userRepository, Mockito.times(2)).save(Mockito.any(User.class));
+    Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any(User.class));
     
     assertEquals(testUser.getId(), loggedInUser.getId());
     assertEquals(testUser.getUsername(), loggedInUser.getUsername());
@@ -218,4 +222,47 @@ class UserServiceTest {
       assertNotNull(groups);
       assertTrue(groups.isEmpty(), "Expected an empty list of groups");
   }
+
+  @Test
+void updateStatus_validInput_success() {
+    // given
+    UserTimerPutDTO timerDTO = new UserTimerPutDTO();
+    timerDTO.setStartTime(LocalDateTime.now());
+    timerDTO.setDuration(Duration.ofMinutes(25));
+    timerDTO.setStatus(UserStatus.WORK);
+    
+    User existingUser = new User();
+    existingUser.setId(1L);
+    existingUser.setUsername("existingUser");
+    existingUser.setStatus(UserStatus.ONLINE);
+    
+    Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+    Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(existingUser);
+    
+    // when
+    User updatedUser = userService.updateStatus(timerDTO, 1L);
+    
+    // then
+    Mockito.verify(userRepository, Mockito.times(1)).findById(1L);
+    Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any(User.class));
+    Mockito.verify(userRepository, Mockito.times(1)).flush();
+    
+    assertEquals(timerDTO.getStartTime(), updatedUser.getStartTime());
+    assertEquals(timerDTO.getDuration(), updatedUser.getDuration());
+    assertEquals(timerDTO.getStatus(), updatedUser.getStatus());
+}
+
+@Test
+void updateStatus_userNotFound_throwsException() {
+    // given
+    UserTimerPutDTO timerDTO = new UserTimerPutDTO();
+    Long nonExistentUserId = 999L;
+    
+    Mockito.when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
+    
+    // when/then
+    assertThrows(ResponseStatusException.class, () -> userService.updateStatus(timerDTO, nonExistentUserId));
+    Mockito.verify(userRepository, Mockito.never()).save(Mockito.any());
+    Mockito.verify(userRepository, Mockito.never()).flush();
+}
 }

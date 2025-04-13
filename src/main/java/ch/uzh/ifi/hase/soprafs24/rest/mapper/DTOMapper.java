@@ -38,6 +38,13 @@ public interface DTOMapper {
   @Mapping(target = "profilePicture", ignore = true)
   @Mapping(target = "memberships", ignore = true)
   @Mapping(target = "activeGroups", ignore = true)
+  @Mapping(target = "birthday", ignore = true)
+  @Mapping(target = "duration", ignore = true)
+  @Mapping(target = "name", ignore = true)
+  @Mapping(target = "profilePicture", ignore = true)
+  @Mapping(target = "startTime", ignore = true)
+  @Mapping(target = "timezone", ignore = true)
+
   User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
   @Mapping(source = "id", target = "id")
@@ -49,6 +56,11 @@ public interface DTOMapper {
   @Mapping(source = "timezone", target = "timezone")
   @Mapping(source = "profilePicture", target = "profilePicture")
   UserGetDTO convertEntityToUserGetDTO(User user);
+
+  @Mapping(source = "startTime", target = "startTime")
+  @Mapping(source = "duration", target = "duration")
+  @Mapping(source = "status", target = "status")
+  UserTimerPutDTO convertEntityToUserTimerPutDTO(User user);
 
   @Mapping(source = "name", target = "name")
   @Mapping(source = "description", target = "description")

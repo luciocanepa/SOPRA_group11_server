@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -81,6 +82,14 @@ public class UserController {
   public UserPutDTO putEdits(@PathVariable Long id, @RequestBody UserPutDTO edits, @RequestHeader("Authorization") String token) {
     User userEdited = userService.putUserEdits(id, edits, token);
     return DTOMapper.INSTANCE.convertEntityToUserPutDTO(userEdited);
+  }
+
+  @PutMapping("/users/{id}/timer")
+  @ResponseStatus(HttpStatus.OK)
+  public UserTimerPutDTO updateTimer(@PathVariable("id") Long id, @RequestBody UserTimerPutDTO userTimerPutDTO) {
+    User user = userService.updateStatus(userTimerPutDTO, id);
+
+    return DTOMapper.INSTANCE.convertEntityToUserTimerPutDTO(user);
   }
 
   @PostMapping("/users/{id}/logout")
