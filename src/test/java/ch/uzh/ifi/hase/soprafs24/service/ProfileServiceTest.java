@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ProfileServiceTest {
@@ -185,5 +186,55 @@ class ProfileServiceTest {
         when(userRepository.findByToken("wrong-token")).thenReturn(null);
 
         assertThrows(ResponseStatusException.class, () -> userService.putUserEdits(1L, edits, "wrong-token"));
+    }
+
+
+    @Test
+    void updateProfile_tokenBelongsToDifferentUser_throwsForbidden() {
+        UserPutDTO edits = new UserPutDTO();
+        edits.setUsername("differentUser");
+
+        User differentUser = new User();
+        differentUser.setId(2L);
+        differentUser.setToken("differentToken");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByToken("differentToken")).thenReturn(differentUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.putUserEdits(1L, edits, "differentToken"));
+    }
+
+    @Test
+    void updateProfile_noName_editStillNoName() { // the existing user will have the same name which is still null
+        UserPutDTO edits = new UserPutDTO();
+        edits.setName(null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByToken("valid-token")).thenReturn(existingUser);
+
+        User updated = userService.putUserEdits(1L, edits, "valid-token");
+        assertNull(updated.getName());
+    }
+
+    @Test
+    void updateName_thenUpdateAgainEmpty() {
+        UserPutDTO edits = new UserPutDTO();
+        edits.setName("Name");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByToken("valid-token")).thenReturn(existingUser);
+
+        User updated = userService.putUserEdits(1L, edits, "valid-token");
+
+
+        UserPutDTO edits2 = new UserPutDTO();
+        edits2.setName(null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(updated));
+        when(userRepository.findByToken("valid-token")).thenReturn(updated);
+
+        User secondUpdate = userService.putUserEdits(1L, edits2, "valid-token");
+
+        assertEquals("Name", secondUpdate.getName());
     }
 }
