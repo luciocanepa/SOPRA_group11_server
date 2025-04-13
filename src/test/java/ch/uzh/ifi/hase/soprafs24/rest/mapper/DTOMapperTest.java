@@ -7,12 +7,14 @@ import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupGetDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.GroupPostDTO;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.InvitationGetDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,6 +100,23 @@ class DTOMapperTest {
     assertEquals(user.getId(), userGetDTO.getId());
     assertEquals(user.getUsername(), userGetDTO.getUsername());
     assertEquals(user.getStatus(), userGetDTO.getStatus());
+  }
+
+  @Test
+  void testPutUserTimer_fromUser_toUserTimerPutDTO_success() {
+    // create User
+    User user = new User();
+    user.setStartTime(LocalDateTime.parse("2023-11-15T14:30:45"));
+    user.setDuration(Duration.parse("PT25M"));
+    user.setStatus(UserStatus.WORK);
+
+    // MAP -> Create UserTimerPutDTO
+    UserTimerPutDTO userTimerPutDTO = DTOMapper.INSTANCE.convertEntityToUserTimerPutDTO(user);
+
+    // check content
+    assertEquals(user.getStartTime(), userTimerPutDTO.getStartTime());
+    assertEquals(user.getDuration(), userTimerPutDTO.getDuration());
+    assertEquals(user.getStatus(), userTimerPutDTO.getStatus());
   }
 
   @Test
