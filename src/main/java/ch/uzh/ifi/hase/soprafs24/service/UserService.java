@@ -5,6 +5,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,9 +92,6 @@ public class UserService {
     userByUsername.setStatus(UserStatus.ONLINE);
     userByUsername = userRepository.save(userByUsername);
     userRepository.flush();
-
-    updateStatus(userByUsername);
-    userByUsername.setStatus(UserStatus.ONLINE);
     
     return userByUsername;
   }
@@ -121,10 +119,16 @@ public class UserService {
     }
   }
 
-  public void updateStatus(User user) {
-    user.setStatus(UserStatus.OFFLINE);
+  public User updateStatus(UserTimerPutDTO userTimer, Long userId) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
+    
+    user.setStartTime(userTimer.getStartTime());
+    user.setDuration(userTimer.getDuration());
+    user.setStatus(userTimer.getStatus());
     userRepository.save(user);
     userRepository.flush();
+    return user;
   }
 
   public User logoutUser(User user) {

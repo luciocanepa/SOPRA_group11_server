@@ -5,7 +5,9 @@ import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -45,6 +47,12 @@ public class User implements Serializable {
 
   @Column(nullable = false)
   private UserStatus status;
+
+  @Column(nullable = true)
+  private LocalDateTime startTime;
+
+  @Column(nullable = true)
+  private Duration duration;
 
 
   @Column(nullable = true)

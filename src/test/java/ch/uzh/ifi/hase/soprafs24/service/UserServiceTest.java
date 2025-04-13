@@ -133,7 +133,7 @@ class UserServiceTest {
     Mockito.verify(userRepository, Mockito.times(1)).findByUsername(Mockito.any());
     Mockito.verify(passwordEncoder, Mockito.times(1)).matches(loginUser.getPassword(), testUser.getPassword());
     
-    Mockito.verify(userRepository, Mockito.times(2)).save(Mockito.any(User.class));
+    Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any(User.class));
     
     assertEquals(testUser.getId(), loggedInUser.getId());
     assertEquals(testUser.getUsername(), loggedInUser.getUsername());
