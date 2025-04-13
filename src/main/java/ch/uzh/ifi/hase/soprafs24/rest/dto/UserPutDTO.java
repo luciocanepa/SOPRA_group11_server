@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 import java.time.LocalDate;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,5 +12,4 @@ public class UserPutDTO {
     private LocalDate birthday;
     private String timezone;
     private String profilePicture;
-    
 }

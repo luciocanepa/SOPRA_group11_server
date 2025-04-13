@@ -33,12 +33,10 @@ public class UserController {
 
   @GetMapping("/users")
   @ResponseStatus(HttpStatus.OK)
-  public List<UserGetDTO> getAllUsers() {
-    // fetch all users in the internal representation
-    List<User> users = userService.getUsers();
+  public List<UserGetDTO> getAllUsers(@RequestHeader("Authorization") String token) {
+    List<User> users = userService.getUsers(token);
     List<UserGetDTO> userGetDTOs = new ArrayList<>();
 
-    // convert each user to the API representation
     for (User user : users) {
       userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
     }
@@ -48,26 +46,23 @@ public class UserController {
   @PostMapping("/users/register")
   @ResponseStatus(HttpStatus.CREATED)
   public UserGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
-    // convert API user to internal representation
     User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
-    // create user
     User createdUser = userService.createUser(userInput);
-    // convert internal representation of user back to API
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
   }
 
   @GetMapping("/users/{id}")
   @ResponseStatus(HttpStatus.OK)
-  public UserGetDTO getUser(@PathVariable("id") Long id) {
-      User user = userService.findById(id);
+  public UserGetDTO getUser(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
+      User user = userService.getUserById(id, token);
       return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
   }
 
   @GetMapping("/users/{id}/groups")
   @ResponseStatus(HttpStatus.OK)
-  public List<GroupGetDTO> getGroupsForUser(@PathVariable("id") Long id) {
-      List<Group> groups = userService.getGroupsForUser(id);
+  public List<GroupGetDTO> getGroupsForUser(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
+      List<Group> groups = userService.getGroupsForUser(id, token);
       return groups.stream()
               .map(DTOMapper.INSTANCE::convertEntityToGroupGetDTO)
               .toList();
@@ -99,8 +94,8 @@ public class UserController {
 
   @PostMapping("/users/{id}/logout")
   @ResponseStatus(HttpStatus.OK)
-  public UserGetDTO logoutUser(@PathVariable("id") Long id) {
-    User user = userService.findById(id);
+  public UserGetDTO logoutUser(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
+    User user = userService.getUserById(id, token);
     user = userService.logoutUser(user);
     
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);

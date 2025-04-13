@@ -126,7 +126,6 @@ class DTOMapperTest {
     groupPostDTO.setName("testGroup");
     groupPostDTO.setDescription("test description");
     groupPostDTO.setImage("test.jpg");
-    groupPostDTO.setAdminId(1L);
 
     // MAP -> Create group
     Group group = DTOMapper.INSTANCE.convertGroupPostDTOtoEntity(groupPostDTO);
@@ -135,7 +134,6 @@ class DTOMapperTest {
     assertEquals(groupPostDTO.getName(), group.getName());
     assertEquals(groupPostDTO.getDescription(), group.getDescription());
     assertEquals(groupPostDTO.getImage(), group.getImage());
-    assertEquals(groupPostDTO.getAdminId(), group.getAdminId());
   }
 
   @Test

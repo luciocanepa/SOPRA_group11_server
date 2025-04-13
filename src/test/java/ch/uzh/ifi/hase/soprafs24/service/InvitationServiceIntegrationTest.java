@@ -80,7 +80,7 @@ class InvitationServiceIntegrationTest {
         testGroup.setName("testGroup");
         testGroup.setAdminId(testInviter.getId());
         testGroup.setMemberships(new ArrayList<>());
-        testGroup = groupService.createGroup(testGroup);
+        testGroup = groupService.createGroup(testGroup, testToken);
     }
 
     @Test
@@ -177,8 +177,9 @@ class InvitationServiceIntegrationTest {
         member.setToken("member-token");
         member = userService.createUser(member);
         
-        // Add the member to the group
-        groupService.addUserToGroup(testGroup.getId(), member.getId());
+        // Add the member to the group through invitation
+        GroupMembership memberInvitation = invitationService.createInvitation(testGroup.getId(), testToken, member.getId());
+        invitationService.acceptInvitation(memberInvitation.getId(), member.getToken());
         
         // Create an invitation
         invitationService.createInvitation(testGroup.getId(), testToken, testInvitee.getId());

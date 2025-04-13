@@ -131,7 +131,7 @@ class UserServiceIntegrationTest {
       userRepository.save(testUser);
 
       // when
-      var activeGroups = userService.getGroupsForUser(testUser.getId());
+      var activeGroups = userService.getGroupsForUser(testUser.getId(), testUser.getToken());
 
       // then
       assertNotNull(activeGroups);
@@ -144,9 +144,15 @@ class UserServiceIntegrationTest {
     void getGroupsForUser_shouldThrowException_whenUserDoesNotExist() {
         // given
         long nonExistentUserId = 999L;
+        User testUser = new User();
+        testUser.setUsername("testUsername");
+        testUser.setPassword("testPassword");
+        testUser.setStatus(UserStatus.ONLINE);
+        testUser = userService.createUser(testUser);
+        String userToken = testUser.getToken(); // Store token in a final variable
 
         // when & then
-        assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(nonExistentUserId));
+        assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(nonExistentUserId, userToken));
     }
 
     // edge case: user is part of no groups
@@ -164,7 +170,7 @@ class UserServiceIntegrationTest {
         Long userId = createdUser.getId();
 
         // When
-        List<Group> groups = userService.getGroupsForUser(userId);
+        List<Group> groups = userService.getGroupsForUser(userId, testUser.getToken());
 
         // Then
         assertTrue(groups.isEmpty(), "Expected an empty list of groups");

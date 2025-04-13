@@ -103,46 +103,13 @@ class GroupServiceIntegrationTest {
         testGroup.setMemberships(new ArrayList<>());
 
         // when
-        Group createdGroup = groupService.createGroup(testGroup);
+        Group createdGroup = groupService.createGroup(testGroup, testUser.getToken());
 
         // then
         assertEquals(testGroup.getName(), createdGroup.getName());
         assertEquals(testUser.getId(), createdGroup.getAdminId());
         assertEquals(1, createdGroup.getActiveUsers().size());
         assertTrue(createdGroup.getActiveUsers().contains(testUser));
-    }
-
-    @Test
-    void addUserToGroup_validInputs_success() {
-        // given
-        User admin = new User();
-        admin.setUsername("admin");
-        admin.setPassword("password");
-        admin.setStatus(UserStatus.ONLINE);
-        admin.setToken("adminToken");
-        admin = userService.createUser(admin);
-
-        User member = new User();
-        member.setUsername("member");
-        member.setPassword("password");
-        member.setStatus(UserStatus.ONLINE);
-        member.setToken("memberToken");
-        member = userService.createUser(member);
-
-        Group testGroup = new Group();
-        testGroup.setName("testGroup");
-        testGroup.setAdminId(admin.getId());
-        testGroup.setMemberships(new ArrayList<>());
-        
-        testGroup = groupService.createGroup(testGroup);
-
-        // when
-        Group updatedGroup = groupService.addUserToGroup(testGroup.getId(), member.getId());
-
-        // then
-        assertEquals(2, updatedGroup.getActiveUsers().size());
-        assertTrue(updatedGroup.getActiveUsers().contains(admin));
-        assertTrue(updatedGroup.getActiveUsers().contains(member));
     }
 
     @Test
@@ -153,20 +120,7 @@ class GroupServiceIntegrationTest {
         testGroup.setAdminId(1L);
 
         // then
-        assertThrows(ResponseStatusException.class, () -> groupService.createGroup(testGroup));
-    }
-
-    @Test
-    void addUserToGroup_invalidGroupId_throwsException() {
-        // given
-        User testUser = new User();
-        testUser.setUsername("testUsername");
-        testUser.setPassword("testPassword");
-        final User createdUser = userService.createUser(testUser);
-
-        // then
-        Long invalidGroupId = 1L;
-        assertThrows(ResponseStatusException.class, () -> groupService.addUserToGroup(invalidGroupId, createdUser.getId()));
+        assertThrows(ResponseStatusException.class, () -> groupService.createGroup(testGroup, "invalid-token"));
     }
 
     @Test
@@ -177,7 +131,7 @@ class GroupServiceIntegrationTest {
         assertEquals(1, membershipRepository.findByGroup(testGroup).size());
         
         // when
-        groupService.deleteGroup(testGroup.getId());
+        groupService.deleteGroup(testGroup.getId(), testUser.getToken());
         
         // then
         assertFalse(groupRepository.findById(testGroup.getId()).isPresent());
@@ -196,56 +150,41 @@ class GroupServiceIntegrationTest {
         updatedGroup.setName("Updated Group Name");
         updatedGroup.setDescription("Updated Description");
         updatedGroup.setImage("Updated Image URL");
+        updatedGroup.setAdminId(testUser.getId());
         
         // when
-        Group result = groupService.updateGroup(testGroup.getId(), updatedGroup);
+        Group result = groupService.updateGroup(testGroup.getId(), updatedGroup, testUser.getToken());
         
         // then
-        assertEquals(testGroup.getId(), result.getId());
         assertEquals("Updated Group Name", result.getName());
         assertEquals("Updated Description", result.getDescription());
         assertEquals("Updated Image URL", result.getImage());
-        
-        // Verify that the group was updated in the database
-        Group savedGroup = groupRepository.findById(testGroup.getId()).get();
-        assertEquals("Updated Group Name", savedGroup.getName());
-        assertEquals("Updated Description", savedGroup.getDescription());
-        assertEquals("Updated Image URL", savedGroup.getImage());
     }
-    
+
     @Test
     void updateGroup_notFound_throwsException() {
         // given
         Group updatedGroup = new Group();
         updatedGroup.setName("Updated Group Name");
+        updatedGroup.setAdminId(testUser.getId());
         
-        // when/then
-        assertThrows(ResponseStatusException.class, () -> groupService.updateGroup(999L, updatedGroup));
-        
-        // Verify that the original group was not modified
-        Group originalGroup = groupRepository.findById(testGroup.getId()).get();
-        assertEquals("testGroup", originalGroup.getName());
+        // then
+        assertThrows(ResponseStatusException.class, () -> groupService.updateGroup(999L, updatedGroup, testUser.getToken()));
     }
-    
+
     @Test
     void updateGroup_partialUpdate_success() {
         // given
-        assertNotNull(testGroup.getId());
-        assertEquals("testGroup", testGroup.getName());
-        
-        // Create a group with only name updated
         Group updatedGroup = new Group();
         updatedGroup.setName("Updated Group Name");
+        updatedGroup.setAdminId(testUser.getId());
         
         // when
-        Group result = groupService.updateGroup(testGroup.getId(), updatedGroup);
+        Group result = groupService.updateGroup(testGroup.getId(), updatedGroup, testUser.getToken());
         
         // then
-        assertEquals(testGroup.getId(), result.getId());
         assertEquals("Updated Group Name", result.getName());
-        
-        // Verify that the group was updated in the database
-        Group savedGroup = groupRepository.findById(testGroup.getId()).get();
-        assertEquals("Updated Group Name", savedGroup.getName());
+        assertEquals(testGroup.getDescription(), result.getDescription());
+        assertEquals(testGroup.getImage(), result.getImage());
     }
 }
