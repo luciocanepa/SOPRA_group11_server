@@ -54,7 +54,6 @@ public class User implements Serializable {
   @Column(nullable = true)
   private Duration duration;
 
-
   @Column(nullable = true)
   private String name;
 

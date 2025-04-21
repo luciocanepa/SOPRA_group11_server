@@ -102,6 +102,21 @@ public class GroupService {
         groupRepository.delete(group);
     }
 
+    /**
+     * Gets all groups that a user is a member of
+     * @param userId the ID of the user
+     * @return list of group IDs the user is a member of
+     */
+    public List<Long> getGroupsForUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                    String.format(NOT_FOUND, "User", userId)));
+        
+        return user.getMemberships().stream()
+                .map(membership -> membership.getGroup().getId())
+                .toList();
+    }
+
     private void validateToken(String token) {
         if (!userRepository.existsByToken(token)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);

@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
 
 /**
  * User Service
@@ -36,6 +38,7 @@ public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final MembershipService membershipService;
+  private final WebSocketService webSocketService;
 
   private static final String NOT_FOUND = "%s with ID %s was not found";
   private static final String CONFLICT = "User with username %s already exists";
@@ -45,10 +48,12 @@ public class UserService {
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
                     MembershipService membershipService,
-                    PasswordEncoder passwordEncoder) {
+                    PasswordEncoder passwordEncoder,
+                    WebSocketService webSocketService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.membershipService = membershipService;
+    this.webSocketService = webSocketService;
   }
 
   public List<User> getUsers(String token) {
@@ -120,14 +125,27 @@ public class UserService {
   }
 
   public User updateStatus(UserTimerPutDTO userTimer, Long userId) {
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
-    
+    User user = findById(userId);
+    if (user == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId));
+    }
+
+    user.setStatus(userTimer.getStatus());
     user.setStartTime(userTimer.getStartTime());
     user.setDuration(userTimer.getDuration());
-    user.setStatus(userTimer.getStatus());
-    userRepository.save(user);
+    
+    user = userRepository.save(user);
     userRepository.flush();
+
+    // Send timer update through WebSocket to general timer topic only
+    webSocketService.sendTimerUpdate(
+      user.getId().toString(),
+      user.getUsername(),
+      user.getStatus().toString(),
+      user.getDuration().toMinutes(),
+      user.getStartTime().toString()
+    );
+
     return user;
   }
 
@@ -199,6 +217,34 @@ public class UserService {
     if (!userRepository.existsByToken(token)) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
+  }
+
+  public void updateStatus(User user) {
+    userRepository.save(user);
+    userRepository.flush();
+    
+    // Send timer update through WebSocket to general timer topic only
+    webSocketService.sendTimerUpdate(
+        user.getId().toString(),
+        user.getUsername(),
+        user.getStatus().toString(),
+        user.getDuration().toMinutes(),
+        user.getStartTime().toString()
+    );
+  }
+
+  public void updateTimer(User user) {
+    userRepository.save(user);
+    userRepository.flush();
+    
+    // Send timer update through WebSocket to general timer topic only
+    webSocketService.sendTimerUpdate(
+        user.getId().toString(),
+        user.getUsername(),
+        user.getStatus().toString(),
+        user.getDuration().toMinutes(),
+        user.getStartTime().toString()
+    );
   }
 
 }

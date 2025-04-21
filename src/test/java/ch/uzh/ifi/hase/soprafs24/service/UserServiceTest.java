@@ -34,6 +34,8 @@ class UserServiceTest {
   private PasswordEncoder passwordEncoder;
   @Mock
   private MembershipService membershipService;
+  @Mock
+  private WebSocketService webSocketService;
 
   @InjectMocks
   private UserService userService;
@@ -49,12 +51,13 @@ class UserServiceTest {
   public void setup() {
     MockitoAnnotations.openMocks(this);
 
-    // given
+    // Initialize test user
     testUser = new User();
     testUser.setId(1L);
-    testUser.setUsername("testUsername");
-    testUser.setPassword("testPassword");
-    testUser.setToken("valid-token");
+    testUser.setUsername("testUser");
+    testUser.setPassword("password");
+    testUser.setToken("test-token");
+    testUser.setStatus(UserStatus.ONLINE);
 
     group1 = new Group();
     group1.setId(1L);
@@ -239,6 +242,15 @@ void updateStatus_validInput_success() {
     Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
     Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(existingUser);
     
+    // Mock the WebSocketService.sendTimerUpdate method
+    Mockito.doNothing().when(webSocketService).sendTimerUpdate(
+        Mockito.anyString(),
+        Mockito.anyString(),
+        Mockito.anyString(),
+        Mockito.anyLong(),
+        Mockito.anyString()
+    );
+    
     // when
     User updatedUser = userService.updateStatus(timerDTO, 1L);
     
@@ -246,6 +258,13 @@ void updateStatus_validInput_success() {
     Mockito.verify(userRepository, Mockito.times(1)).findById(1L);
     Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any(User.class));
     Mockito.verify(userRepository, Mockito.times(1)).flush();
+    Mockito.verify(webSocketService, Mockito.times(1)).sendTimerUpdate(
+        Mockito.anyString(),
+        Mockito.anyString(),
+        Mockito.anyString(),
+        Mockito.anyLong(),
+        Mockito.anyString()
+    );
     
     assertEquals(timerDTO.getStartTime(), updatedUser.getStartTime());
     assertEquals(timerDTO.getDuration(), updatedUser.getDuration());
