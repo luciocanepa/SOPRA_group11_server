@@ -215,4 +215,119 @@ class GroupServiceTest {
     assertEquals(testGroup.getDescription(), result.getDescription());
     assertEquals(testGroup.getImage(), result.getImage());
   }
+
+  @Test
+  void removeUserFromGroup_validInputs_success() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    
+    // Create a user to remove
+    User userToRemove = new User();
+    userToRemove.setId(2L);
+    userToRemove.setUsername("userToRemove");
+    userToRemove.setMemberships(new ArrayList<>());
+    
+    // Create a membership for the user to remove
+    GroupMembership membershipToRemove = new GroupMembership();
+    membershipToRemove.setUser(userToRemove);
+    membershipToRemove.setGroup(testGroup);
+    membershipToRemove.setStatus(MembershipStatus.ACTIVE);
+    
+    // Add the membership to the group and user
+    testGroup.getMemberships().add(membershipToRemove);
+    userToRemove.getMemberships().add(membershipToRemove);
+    
+    // Mock the user repository to return the user to remove
+    Mockito.when(userRepository.findById(userToRemove.getId())).thenReturn(Optional.of(userToRemove));
+    
+    // Mock the membership service to return the membership
+    Mockito.when(membershipService.findByUserAndGroup(userToRemove, testGroup)).thenReturn(membershipToRemove);
+    
+    // then
+    groupService.removeUserFromGroup(testGroup.getId(), userToRemove.getId(), "valid-token");
+    
+    // Verify that the membership service was called to remove the user from the group
+    Mockito.verify(membershipService, Mockito.times(1)).removeUserFromGroup(userToRemove, testGroup);
+  }
+  
+  @Test
+  void removeUserFromGroup_notAdmin_throwsException() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    
+    // Create a non-admin user
+    User nonAdminUser = new User();
+    nonAdminUser.setId(999L);
+    nonAdminUser.setUsername("nonAdmin");
+    nonAdminUser.setToken("non-admin-token");
+    
+    // Mock the user repository to return the non-admin user
+    Mockito.when(userRepository.findByToken("non-admin-token")).thenReturn(nonAdminUser);
+    
+    // Create a user to remove
+    User userToRemove = new User();
+    userToRemove.setId(2L);
+    userToRemove.setUsername("userToRemove");
+    
+    // Mock the user repository to return the user to remove
+    Mockito.when(userRepository.findById(userToRemove.getId())).thenReturn(Optional.of(userToRemove));
+    
+    // then -> attempt to remove user as non-admin -> check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> 
+        groupService.removeUserFromGroup(testGroup.getId(), userToRemove.getId(), "non-admin-token"));
+    
+    // Verify that the membership service was not called
+    Mockito.verify(membershipService, Mockito.never()).removeUserFromGroup(Mockito.any(), Mockito.any());
+  }
+  
+  @Test
+  void removeUserFromGroup_userNotMember_throwsException() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    
+    // Create a user that is not a member of the group
+    User nonMemberUser = new User();
+    nonMemberUser.setId(2L);
+    nonMemberUser.setUsername("nonMember");
+    
+    // Mock the user repository to return the non-member user
+    Mockito.when(userRepository.findById(nonMemberUser.getId())).thenReturn(Optional.of(nonMemberUser));
+    
+    // Mock the membership service to return null (user is not a member)
+    Mockito.when(membershipService.findByUserAndGroup(nonMemberUser, testGroup)).thenReturn(null);
+    
+    // then -> attempt to remove non-member -> check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> 
+        groupService.removeUserFromGroup(testGroup.getId(), nonMemberUser.getId(), "valid-token"));
+    
+    // Verify that the membership service was not called
+    Mockito.verify(membershipService, Mockito.never()).removeUserFromGroup(Mockito.any(), Mockito.any());
+  }
+  
+  @Test
+  void removeUserFromGroup_groupNotFound_throwsException() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.empty());
+    
+    // then -> attempt to remove user from non-existent group -> check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> 
+        groupService.removeUserFromGroup(999L, 2L, "valid-token"));
+    
+    // Verify that the membership service was not called
+    Mockito.verify(membershipService, Mockito.never()).removeUserFromGroup(Mockito.any(), Mockito.any());
+  }
+  
+  @Test
+  void removeUserFromGroup_userNotFound_throwsException() {
+    // when -> setup additional mocks
+    Mockito.when(groupRepository.findById(Mockito.any())).thenReturn(Optional.of(testGroup));
+    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.empty());
+    
+    // then -> attempt to remove non-existent user -> check that an error is thrown
+    assertThrows(ResponseStatusException.class, () -> 
+        groupService.removeUserFromGroup(testGroup.getId(), 999L, "valid-token"));
+    
+    // Verify that the membership service was not called
+    Mockito.verify(membershipService, Mockito.never()).removeUserFromGroup(Mockito.any(), Mockito.any());
+  }
 }

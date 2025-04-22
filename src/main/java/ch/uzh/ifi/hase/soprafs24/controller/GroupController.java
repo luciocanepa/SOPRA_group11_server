@@ -71,5 +71,11 @@ public class GroupController {
     public void deleteGroup(@PathVariable Long gid, @RequestHeader("Authorization") String token) {
         groupService.deleteGroup(gid, token);
     }
-    
+
+    @DeleteMapping("/groups/{gid}/users/{uid}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeUserFromGroup(@PathVariable Long gid, @PathVariable Long uid, @RequestHeader("Authorization") String token) {
+        groupService.removeUserFromGroup(gid, uid, token);
+    }
+
 }

@@ -257,12 +257,6 @@ class InvitationServiceTest {
         // find the membership (if any)
         Mockito.when(membershipRepository.findById(testMembership.getId()))
                 .thenReturn(Optional.of(testMembership));
-        Mockito.when(membershipRepository.save(Mockito.any(GroupMembership.class)))
-                .thenAnswer(invocation -> {
-                    GroupMembership membership = invocation.getArgument(0);
-                    membership.setStatus(MembershipStatus.REJECTED);
-                    return membership;
-                });
         
         // invitee has access
         String inviteeToken = "invitee-token";
@@ -271,9 +265,8 @@ class InvitationServiceTest {
         // then
         invitationService.rejectInvitation(testMembership.getId(), inviteeToken);
 
-        // verify
-        Mockito.verify(membershipRepository).save(Mockito.any());
-        assertEquals(MembershipStatus.REJECTED, testMembership.getStatus());
+        // verify that removeUserFromGroup was called with the correct parameters
+        Mockito.verify(membershipService).removeUserFromGroup(testInvitee, testGroup);
     }
 
     @Test

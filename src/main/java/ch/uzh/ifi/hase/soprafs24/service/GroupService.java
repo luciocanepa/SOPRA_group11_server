@@ -102,6 +102,31 @@ public class GroupService {
         groupRepository.delete(group);
     }
 
+    public void removeUserFromGroup(Long groupId, Long userId, String token) {
+        validateToken(token);
+        User admin = userRepository.findByToken(token);
+        Group group = getGroupById(groupId, token);
+        
+        // Check if the requesting user is the admin of the group
+        if (!admin.getId().equals(group.getAdminId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(FORBIDDEN, "remove users from"));
+        }
+        
+        // Get the user to remove
+        User userToRemove = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
+        
+        // Check if the user is a member of the group
+        GroupMembership membership = membershipService.findByUserAndGroup(userToRemove, group);
+        if (membership == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                String.format("User with ID %s is not a member of the group", userId));
+        }
+        
+        // Remove the user from the group
+        membershipService.removeUserFromGroup(userToRemove, group);
+    }
+
     private void validateToken(String token) {
         if (!userRepository.existsByToken(token)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);

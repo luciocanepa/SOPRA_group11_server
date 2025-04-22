@@ -17,6 +17,7 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -67,6 +68,7 @@ class GroupServiceIntegrationTest {
         testGroup = new Group();
         testGroup.setName("testGroup");
         testGroup.setAdminId(testUser.getId());
+        testGroup.setMemberships(new ArrayList<>());
         testGroup = groupRepository.save(testGroup);
 
         // Create test membership
@@ -76,13 +78,13 @@ class GroupServiceIntegrationTest {
         testMembership.setStatus(MembershipStatus.ACTIVE);
         testMembership.setInvitedBy(testUser.getId());
         testMembership.setInvitedAt(LocalDateTime.now());
+        testMembership = membershipRepository.save(testMembership);
         
         // Set up bidirectional relationships
         testGroup.getMemberships().add(testMembership);
         testUser.getMemberships().add(testMembership);
         
         // Save the entities
-        testMembership = membershipRepository.save(testMembership);
         testGroup = groupRepository.save(testGroup);
         testUser = userRepository.save(testUser);
     }
@@ -186,5 +188,243 @@ class GroupServiceIntegrationTest {
         assertEquals("Updated Group Name", result.getName());
         assertEquals(testGroup.getDescription(), result.getDescription());
         assertEquals(testGroup.getImage(), result.getImage());
+    }
+
+    @Test
+    void removeUserFromGroup_validInputs_success() {
+        // given -> a group with members
+        final Group group = new Group();
+        group.setName("Test Group");
+        group.setDescription("Test Description");
+        group.setImage("test.jpg");
+        group.setMemberships(new ArrayList<>());
+        
+        // Create admin user first
+        final User adminUser = new User();
+        adminUser.setUsername("admin");
+        adminUser.setPassword("password");
+        adminUser.setToken("admin-token");
+        adminUser.setStatus(UserStatus.ONLINE);
+        adminUser.setMemberships(new ArrayList<>());
+        final User savedAdminUser = userRepository.save(adminUser);
+        
+        // Set admin ID on group before saving
+        group.setAdminId(savedAdminUser.getId());
+        final Group savedGroup = groupRepository.save(group);
+        
+        // Create admin membership
+        GroupMembership adminMembership = new GroupMembership();
+        adminMembership.setUser(savedAdminUser);
+        adminMembership.setGroup(savedGroup);
+        adminMembership.setStatus(MembershipStatus.ACTIVE);
+        adminMembership = membershipRepository.save(adminMembership);
+        
+        // Add admin membership to group and user
+        savedGroup.getMemberships().add(adminMembership);
+        savedAdminUser.getMemberships().add(adminMembership);
+        groupRepository.save(savedGroup);
+        userRepository.save(savedAdminUser);
+        
+        // Create user to remove
+        final User userToRemove = new User();
+        userToRemove.setUsername("userToRemove");
+        userToRemove.setPassword("password");
+        userToRemove.setToken("user-token");
+        userToRemove.setStatus(UserStatus.ONLINE);
+        userToRemove.setMemberships(new ArrayList<>());
+        final User savedUserToRemove = userRepository.save(userToRemove);
+        
+        // Create membership for user to remove
+        GroupMembership membershipToRemove = new GroupMembership();
+        membershipToRemove.setUser(savedUserToRemove);
+        membershipToRemove.setGroup(savedGroup);
+        membershipToRemove.setStatus(MembershipStatus.ACTIVE);
+        membershipToRemove = membershipRepository.save(membershipToRemove);
+        
+        // Add membership to group and user
+        savedGroup.getMemberships().add(membershipToRemove);
+        savedUserToRemove.getMemberships().add(membershipToRemove);
+        groupRepository.save(savedGroup);
+        userRepository.save(savedUserToRemove);
+        
+        // Force initialization of collections before the transaction ends
+        membershipRepository.findByGroup(savedGroup);
+        membershipRepository.findByUser(savedUserToRemove);
+        
+        // when -> remove user from group
+        groupService.removeUserFromGroup(savedGroup.getId(), savedUserToRemove.getId(), savedAdminUser.getToken());
+        
+        // then -> verify user is removed from group
+        Group updatedGroup = groupRepository.findById(savedGroup.getId()).orElseThrow();
+        List<GroupMembership> memberships = membershipRepository.findByGroup(updatedGroup);
+        boolean userStillInGroup = memberships.stream()
+            .anyMatch(m -> m.getUser().getId().equals(savedUserToRemove.getId()));
+        assertFalse(userStillInGroup);
+        
+        // Verify user's memberships are updated
+        List<GroupMembership> userMemberships = membershipRepository.findByUser(savedUserToRemove);
+        boolean userHasGroupMembership = userMemberships.stream()
+            .anyMatch(m -> m.getGroup().getId().equals(savedGroup.getId()));
+        assertFalse(userHasGroupMembership);
+    }
+    
+    @Test
+    void removeUserFromGroup_notAdmin_throwsException() {
+        // given -> a group with members
+        Group group = new Group();
+        group.setName("Test Group");
+        group.setDescription("Test Description");
+        group.setImage("test.jpg");
+        group.setMemberships(new ArrayList<>());
+        
+        // Create admin user first
+        User adminUser = new User();
+        adminUser.setUsername("admin");
+        adminUser.setPassword("password");
+        adminUser.setToken("admin-token");
+        adminUser.setStatus(UserStatus.ONLINE);
+        adminUser.setMemberships(new ArrayList<>());
+        final User savedAdminUser = userRepository.save(adminUser);
+        
+        // Set admin ID on group before saving
+        group.setAdminId(savedAdminUser.getId());
+        final Group savedGroup = groupRepository.save(group);
+        
+        // Create admin membership
+        GroupMembership adminMembership = new GroupMembership();
+        adminMembership.setUser(savedAdminUser);
+        adminMembership.setGroup(savedGroup);
+        adminMembership.setStatus(MembershipStatus.ACTIVE);
+        adminMembership = membershipRepository.save(adminMembership);
+        
+        // Add admin membership to group and user
+        savedGroup.getMemberships().add(adminMembership);
+        savedAdminUser.getMemberships().add(adminMembership);
+        groupRepository.save(savedGroup);
+        userRepository.save(savedAdminUser);
+        
+        // Create non-admin user
+        User nonAdminUser = new User();
+        nonAdminUser.setUsername("nonAdmin");
+        nonAdminUser.setPassword("password");
+        nonAdminUser.setToken("non-admin-token");
+        nonAdminUser.setStatus(UserStatus.ONLINE);
+        nonAdminUser.setMemberships(new ArrayList<>());
+        final User savedNonAdminUser = userRepository.save(nonAdminUser);
+        
+        // Create non-admin membership
+        GroupMembership nonAdminMembership = new GroupMembership();
+        nonAdminMembership.setUser(savedNonAdminUser);
+        nonAdminMembership.setGroup(savedGroup);
+        nonAdminMembership.setStatus(MembershipStatus.ACTIVE);
+        nonAdminMembership = membershipRepository.save(nonAdminMembership);
+        
+        // Add non-admin membership to group and user
+        savedGroup.getMemberships().add(nonAdminMembership);
+        savedNonAdminUser.getMemberships().add(nonAdminMembership);
+        groupRepository.save(savedGroup);
+        userRepository.save(savedNonAdminUser);
+        
+        // Create user to remove
+        User userToRemove = new User();
+        userToRemove.setUsername("userToRemove");
+        userToRemove.setPassword("password");
+        userToRemove.setToken("user-token");
+        userToRemove.setStatus(UserStatus.ONLINE);
+        userToRemove.setMemberships(new ArrayList<>());
+        final User savedUserToRemove = userRepository.save(userToRemove);
+        
+        // Create membership for user to remove
+        GroupMembership membershipToRemove = new GroupMembership();
+        membershipToRemove.setUser(savedUserToRemove);
+        membershipToRemove.setGroup(savedGroup);
+        membershipToRemove.setStatus(MembershipStatus.ACTIVE);
+        membershipToRemove = membershipRepository.save(membershipToRemove);
+        
+        // Add membership to group and user
+        savedGroup.getMemberships().add(membershipToRemove);
+        savedUserToRemove.getMemberships().add(membershipToRemove);
+        groupRepository.save(savedGroup);
+        userRepository.save(savedUserToRemove);
+        
+        // Force initialization of collections before the transaction ends
+        membershipRepository.findByGroup(savedGroup);
+        membershipRepository.findByUser(savedUserToRemove);
+        
+        // when/then -> attempt to remove user as non-admin -> check that an error is thrown
+        assertThrows(ResponseStatusException.class, () -> 
+            groupService.removeUserFromGroup(savedGroup.getId(), savedUserToRemove.getId(), savedNonAdminUser.getToken()));
+        
+        // Verify user is still in group - do this within a new transaction
+        Group updatedGroup = groupRepository.findById(savedGroup.getId()).orElseThrow();
+        List<GroupMembership> memberships = membershipRepository.findByGroup(updatedGroup);
+        boolean userStillInGroup = memberships.stream()
+            .anyMatch(m -> m.getUser().getId().equals(savedUserToRemove.getId()));
+        assertTrue(userStillInGroup);
+    }
+
+    @Test
+    void removeUserFromGroup_userNotFound_throwsException() {
+        // given -> a group with admin
+        final Group group = new Group();
+        group.setName("Test Group");
+        group.setDescription("Test Description");
+        group.setImage("test.jpg");
+        group.setMemberships(new ArrayList<>());
+        
+        // Create admin user first
+        final User adminUser = new User();
+        adminUser.setUsername("admin");
+        adminUser.setPassword("password");
+        adminUser.setToken("admin-token");
+        adminUser.setStatus(UserStatus.ONLINE);
+        adminUser.setMemberships(new ArrayList<>());
+        final User savedAdminUser = userRepository.save(adminUser);
+        
+        // Set admin ID on group before saving
+        group.setAdminId(savedAdminUser.getId());
+        final Group savedGroup = groupRepository.save(group);
+        
+        // Create admin membership
+        GroupMembership adminMembership = new GroupMembership();
+        adminMembership.setUser(savedAdminUser);
+        adminMembership.setGroup(savedGroup);
+        adminMembership.setStatus(MembershipStatus.ACTIVE);
+        adminMembership = membershipRepository.save(adminMembership);
+        
+        // Add admin membership to group and user
+        savedGroup.getMemberships().add(adminMembership);
+        savedAdminUser.getMemberships().add(adminMembership);
+        groupRepository.save(savedGroup);
+        userRepository.save(savedAdminUser);
+        
+        // when/then -> attempt to remove non-existent user -> check that an error is thrown
+        assertThrows(ResponseStatusException.class, () -> 
+            groupService.removeUserFromGroup(savedGroup.getId(), 999999L, savedAdminUser.getToken()));
+    }
+    
+    @Test
+    void removeUserFromGroup_groupNotFound_throwsException() {
+        // given -> an admin user
+        final User adminUser = new User();
+        adminUser.setUsername("admin");
+        adminUser.setPassword("password");
+        adminUser.setToken("admin-token");
+        adminUser.setStatus(UserStatus.ONLINE);
+        adminUser.setMemberships(new ArrayList<>());
+        final User savedAdminUser = userRepository.save(adminUser);
+        
+        // Create user to remove
+        final User userToRemove = new User();
+        userToRemove.setUsername("userToRemove");
+        userToRemove.setPassword("password");
+        userToRemove.setToken("user-token");
+        userToRemove.setStatus(UserStatus.ONLINE);
+        userToRemove.setMemberships(new ArrayList<>());
+        final User savedUserToRemove = userRepository.save(userToRemove);
+        
+        // when/then -> attempt to remove user from non-existent group -> check that an error is thrown
+        assertThrows(ResponseStatusException.class, () -> 
+            groupService.removeUserFromGroup(999999L, savedUserToRemove.getId(), savedAdminUser.getToken()));
     }
 }

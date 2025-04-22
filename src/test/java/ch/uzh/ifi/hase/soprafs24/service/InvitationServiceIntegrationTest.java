@@ -229,8 +229,12 @@ class InvitationServiceIntegrationTest {
         invitationService.rejectInvitation(membership.getId(), testInvitee.getToken());
 
         // then
-        GroupMembership updatedMembership = membershipRepository.findById(membership.getId()).orElseThrow();
-        assertEquals(MembershipStatus.REJECTED, updatedMembership.getStatus());
+        // Verify that the membership no longer exists
+        assertFalse(membershipRepository.findById(membership.getId()).isPresent());
+        
+        // Verify that the user is not in the group's active users
+        List<GroupMembership> activeMemberships = membershipRepository.findByGroupAndStatus(testGroup, MembershipStatus.ACTIVE);
+        assertFalse(activeMemberships.stream().anyMatch(m -> m.getUser().getId().equals(testInvitee.getId())));
     }
 
     @Test

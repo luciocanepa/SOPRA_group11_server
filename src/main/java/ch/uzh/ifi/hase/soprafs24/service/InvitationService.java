@@ -175,7 +175,6 @@ public class InvitationService {
                     String.format(FORBIDDEN, user.getId()));
         }
         
-        membership.setStatus(MembershipStatus.REJECTED);
-        membershipRepository.save(membership);
+        membershipService.removeUserFromGroup(membership.getUser(), membership.getGroup());
     }
 } 
