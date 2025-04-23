@@ -37,13 +37,23 @@ jobs:
           fi
 
       - name: Run SonarQube Analysis
-        run: ./gradlew sonar --info  # Added --info for more detailed output
+        uses: sonarsource/sonarqube-scan-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
           SONAR_ORGANIZATION: luciocanepa-1
           SONAR_PROJECT_KEY: luciocanepa_SOPRA_group11_server
+          SONAR_PROJECT_NAME: SOPRA_group11_server
+          SONAR_SOURCES: src/main/java
+          SONAR_TESTS: src/test/java
+          SONAR_JAVA_BINARIES: build/classes/java/main
+          SONAR_JAVA_TEST_BINARIES: build/classes/java/test
+          SONAR_JAVA_LIBRARIES: build/libs/*.jar
+          SONAR_COVERAGE_JACOCO_XMLREPORTPATHS: build/reports/jacoco/test/jacocoTestReport.xml
+          SONAR_COVERAGE_EXCLUSIONS: "**/Application.java,**/config/**,**/dto/**,**/exception/**"
+          SONAR_JACOCO_REPORTPATHS: build/jacoco/test.exec
+          SONAR_JUNIT_REPORTPATHS: build/test-results/test
+          SONAR_JAVA_COVERAGEPLUGIN: jacoco
 
   deploy:
     name: Deploying to Google Cloud
