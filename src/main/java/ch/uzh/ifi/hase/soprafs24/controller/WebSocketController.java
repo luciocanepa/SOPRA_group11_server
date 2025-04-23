@@ -12,10 +12,12 @@ import ch.uzh.ifi.hase.soprafs24.service.WebSocketService;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
+import ch.uzh.ifi.hase.soprafs24.entity.ChatMessage;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.TimerUpdate;
 
 import java.util.Map;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -135,13 +137,29 @@ public class WebSocketController {
             } catch (Exception e) {
                 return String.format("Error getting user for timer update: %s", e.getMessage());
             }
-
+            System.out.println("test");
             webSocketService.sendMessageToTopic("/topic/timer", timerUpdate);
 
             return String.format("Timer update sent to topic /topic/timer");
         } catch (Exception e) {
             return String.format("Error handling timer update: %s", e.getMessage());
         }
+    }
+
+    @MessageMapping("/group.message")
+    public void handleGroupMessage(@Payload ChatMessage message, SimpMessageHeaderAccessor headerAccessor) {
+        // Validate sender
+        String senderId = headerAccessor.getUser().getName();
+        if (!senderId.equals(message.getSenderId())) {
+            throw new SecurityException("User ID mismatch");
+        }
+        System.out.println("test");
+        // Add timestamp
+        message.setTimestamp(LocalDateTime.now());
+        
+        
+        // Broadcast to group
+        messagingTemplate.convertAndSend("/topic/group." + message.getGroupId(), message);
     }
 
     /**
