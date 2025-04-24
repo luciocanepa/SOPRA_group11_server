@@ -63,9 +63,10 @@ bootJar {
 
 sonar {
   properties {
-    property "sonar.projectKey", "luciocanepa_SOPRA_group11_server"
+    property "sonar.projectKey", "SOPRA_group11_server"
     property "sonar.organization", "luciocanepa-1"
     property "sonar.host.url", "https://sonarcloud.io"
+    property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
   }
 }
 
