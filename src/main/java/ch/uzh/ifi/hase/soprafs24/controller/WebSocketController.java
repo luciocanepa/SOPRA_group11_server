@@ -18,9 +18,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.TimerUpdate;
 
 import java.util.Map;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+
 
 @Controller
 public class WebSocketController {
@@ -137,7 +135,7 @@ public class WebSocketController {
             } catch (Exception e) {
                 return String.format("Error getting user for timer update: %s", e.getMessage());
             }
-            System.out.println("test");
+
             webSocketService.sendMessageToTopic("/topic/timer", timerUpdate);
 
             return String.format("Timer update sent to topic /topic/timer");
@@ -147,19 +145,32 @@ public class WebSocketController {
     }
 
     @MessageMapping("/group.message")
-    public void handleGroupMessage(@Payload ChatMessage message, SimpMessageHeaderAccessor headerAccessor) {
-        // Validate sender
-        String senderId = headerAccessor.getUser().getName();
-        if (!senderId.equals(message.getSenderId())) {
-            throw new SecurityException("User ID mismatch");
-        }
-        System.out.println("test");
-        // Add timestamp
+    public String handleGroupMessage(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor headerAccessor) {
+        
+
+        String senderId = payload.get("senderId").toString();
+
+        ChatMessage message = new ChatMessage();
+        message.setSenderId(senderId);
         message.setTimestamp(LocalDateTime.now());
+        message.setGroupId((String) payload.get("groupId"));
+        message.setContent((String) payload.get("content"));
+
+        try {
+            User user = userService.getUserById(Long.parseLong(senderId), "");
+            message.setSenderName(user.getUsername());
+        } catch (Exception e) {
+            return String.format("Error getting user for message: %s", e.getMessage());
+        }
         
         
         // Broadcast to group
+        String topic = "/topic/group." + message.getGroupId();
+        System.out.println("Broadcasting to: " + topic);
+        System.out.println("Message content: " + message.getContent());
         messagingTemplate.convertAndSend("/topic/group." + message.getGroupId(), message);
+
+        return String.format("Message sent to topic /topic/group." + payload.get("groupId"));
     }
 
     /**
