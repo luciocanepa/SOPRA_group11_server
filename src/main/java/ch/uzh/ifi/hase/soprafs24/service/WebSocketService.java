@@ -25,9 +25,12 @@ public class WebSocketService {
     }
 
     public void addUserToGroup(String groupId, String sessionId, String userId) {
-        groupSessions.computeIfAbsent(groupId, k -> new ConcurrentHashMap<>()).put(sessionId, userId);
+        System.out.println("Adding user to group - userId: " + userId + ", groupId: " + groupId + ", sessionId: " + sessionId);
+        groupSessions.computeIfAbsent(groupId, k -> new ConcurrentHashMap<>())
+                .put(sessionId, userId);
         
         userSessions.put(userId, sessionId);
+        System.out.println("Current group sessions: " + groupSessions);
     }
 
     public void removeUserFromGroup(String groupId, String sessionId) {
@@ -52,16 +55,6 @@ public class WebSocketService {
         }
     }
     
-    // /**
-    //  * Sends a message to a specific topic
-    //  * 
-    //  * @param topic The topic to send the message to
-    //  * @param payload The message payload
-    //  */
-    // public void sendMessageToTopic(String topic, Object payload) {
-    //     messagingTemplate.convertAndSend(topic, payload);
-    // }
-    
     public void sendTimerUpdate(String userId, String username, String groupId, String status, String duration, String startTime) {
         Map<String, Object> data = new HashMap<>();
         data.put("type", "TIMER_UPDATE");
@@ -77,9 +70,14 @@ public class WebSocketService {
     }
 
     public void sendMessageToGroup(String groupId, Map<String, Object> message) {
+        System.out.println("Sending message to group " + groupId + ": " + message);
+        System.out.println("Current group sessions: " + groupSessions);
+        System.out.println("Group " + groupId + " members: " + (groupSessions.get(groupId) != null ? groupSessions.get(groupId).values() : "no members"));
+        
         String destination = "/topic/group." + groupId;
         try {
             messagingTemplate.convertAndSend(destination, message);
+            System.out.println("Successfully sent message to " + destination);
         } catch (Exception e) {
             System.err.println("Error sending message to " + destination + ": " + e.getMessage());
             e.printStackTrace();

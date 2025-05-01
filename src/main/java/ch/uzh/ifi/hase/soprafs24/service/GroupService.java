@@ -50,6 +50,12 @@ public class GroupService {
                     String.format(NOT_FOUND, "Group", groupId)));
     }
 
+    public Group findById(Long groupId) {
+        return this.groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                    String.format(NOT_FOUND, "Group", groupId)));
+    }
+
     public Group createGroup(Group newGroup, String token) {
         validateToken(token);
         User admin = userRepository.findByToken(token);

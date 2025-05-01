@@ -3,10 +3,15 @@ package ch.uzh.ifi.hase.soprafs24.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs24.service.WebSocketService;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
@@ -22,11 +27,14 @@ import java.util.Set;
 
 
 @Controller
+@Transactional
 public class WebSocketController {
     
     private final WebSocketService webSocketService;
     private final GroupService groupService;
     private final UserService userService;
+
+    private static final String FORBIDDEN = "User is not authorized to perform this action";
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -47,15 +55,17 @@ public class WebSocketController {
      * @param payload Contains userId and groupId
      */
     @MessageMapping("/group.join")
-    public String handleGroupJoin(@Payload Map<String, String> payload, SimpMessageHeaderAccessor headerAccessor) {
+    public String handleGroupJoin(@Payload Map<String, String> payload, 
+                                SimpMessageHeaderAccessor headerAccessor,
+                                @Header("Authorization") String token) {
         String userId = payload.get("userId");
         String groupId = payload.get("groupId");
         String sessionId = headerAccessor.getSessionId();
         
+        authCheck(userId, groupId, token);
+        
         try {
-            User user = userService.findById(Long.parseLong(userId));            
             webSocketService.addUserToGroup(groupId, sessionId, userId);
-
             return String.format("User with ID %s joined group %s", userId, groupId);
         } catch (Exception e) {
             return String.format("Error handling group join: %s", e.getMessage());
@@ -69,14 +79,16 @@ public class WebSocketController {
      * @param payload Contains userId and groupId
      */
     @MessageMapping("/group.leave")
-    public String handleGroupLeave(@Payload Map<String, String> payload) {
+    public String handleGroupLeave(@Payload Map<String, String> payload,
+                                 @Header("Authorization") String token) {
         String userId = payload.get("userId");
         String groupId = payload.get("groupId");
+        
+        authCheck(userId, groupId, token);
         
         try {
             User user = userService.findById(Long.parseLong(userId));
             webSocketService.removeUserFromGroupByUserId(groupId, userId);
-
             return String.format("User with ID %s left group %d", userId, groupId);
         } catch (Exception e) {
             return String.format("Error handling group leave: %s", e.getMessage());
@@ -84,9 +96,12 @@ public class WebSocketController {
     }
 
     @MessageMapping("/group.message")
-    public String handleGroupMessage(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor headerAccessor) {
+    public String handleGroupMessage(@Payload Map<String, Object> payload,
+                                   @Header("Authorization") String token) {
         String senderId = payload.get("senderId").toString();
         String groupId = payload.get("groupId").toString();
+
+        authCheck(senderId, groupId, token);
 
         ChatMessage message = new ChatMessage();
         message.setSenderId(senderId);
@@ -112,14 +127,21 @@ public class WebSocketController {
         }
     }
 
-    // /**
-    //  * Handles subscription to a group topic
-    //  * This method is called when a client subscribes to a group topic
-    //  * 
-    //  * @return A welcome message
-    //  */
-    // @SubscribeMapping("/topic/group/{groupId}")
-    // public String handleGroupSubscription() {
-    //     return "Welcome to the group!";
-    // }
+    void isUserValid(Long userId, String token) {
+        if(!userService.findById(userId).equals(userService.findByToken(token))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
+        }
+    }
+
+    void isUserInGroup(Long userId, Long groupId) {
+        if (!userService.isUserInGroup(userId, groupId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
+        }
+    }
+
+    void authCheck(String userId, String groupId, String token) {
+        userService.validateToken(token);
+        isUserValid(Long.parseLong(userId), token);
+        isUserInGroup(Long.parseLong(userId), Long.parseLong(groupId));
+    }
 } 

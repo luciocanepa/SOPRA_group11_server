@@ -15,7 +15,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketConfig.class);
 
-    @Value("${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000}")
+    @Value("${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000,https://sopra-fs25-group-11-client.vercel.app/}")
     private String allowedOrigins;
 
     @Override
@@ -41,4 +41,4 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         
         logger.info("WebSocket STOMP endpoints registered with allowed origins: {}", allowedOrigins);
     }
-} 
+}

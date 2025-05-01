@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
@@ -188,10 +189,14 @@ public class UserService {
     return user;
   }
 
-  public User updateStatus(UserTimerPutDTO userTimer, Long userId) {
+  public User updateStatus(UserTimerPutDTO userTimer, Long userId, String token) {
     User user = findById(userId);
     if (user == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId));
+    }
+
+    if (!user.getId().equals(userId)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
     }
 
     user.setStatus(userTimer.getStatus());
@@ -216,7 +221,16 @@ public class UserService {
     return user;
   }
 
-  private void validateToken(String token) {
+  @Transactional
+  public boolean isUserInGroup(Long userId, Long groupId) {
+    User user = findById(userId);
+    return user.getMemberships().stream()
+        .anyMatch(membership -> 
+            membership.getGroup().getId().equals(groupId) && 
+            membership.getStatus() == MembershipStatus.ACTIVE);
+  }
+
+  public void validateToken(String token) {
     if (!userRepository.existsByToken(token)) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
