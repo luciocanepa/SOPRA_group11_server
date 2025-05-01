@@ -124,31 +124,6 @@ public class UserService {
     }
   }
 
-  public User updateStatus(UserTimerPutDTO userTimer, Long userId) {
-    User user = findById(userId);
-    if (user == null) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId));
-    }
-
-    user.setStatus(userTimer.getStatus());
-    user.setStartTime(userTimer.getStartTime());
-    user.setDuration(userTimer.getDuration());
-    
-    user = userRepository.save(user);
-    userRepository.flush();
-
-    // Send timer update through WebSocket to general timer topic only
-    webSocketService.sendTimerUpdate(
-      user.getId().toString(),
-      user.getUsername(),
-      user.getStatus().toString(),
-      user.getDuration().toMinutes(),
-      user.getStartTime().toString()
-    );
-
-    return user;
-  }
-
   public User logoutUser(User user) {
     user.setStatus(UserStatus.OFFLINE);
     userRepository.save(user);
@@ -213,38 +188,38 @@ public class UserService {
     return user;
   }
 
+  public User updateStatus(UserTimerPutDTO userTimer, Long userId) {
+    User user = findById(userId);
+    if (user == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId));
+    }
+
+    user.setStatus(userTimer.getStatus());
+    user.setStartTime(userTimer.getStartTime());
+    user.setDuration(userTimer.getDuration());
+    
+    user = userRepository.save(user);
+    userRepository.flush();
+
+    List<Group> groupIds = membershipService.getActiveGroupsForUser(user);
+    for (Group group : groupIds) {
+      webSocketService.sendTimerUpdate(
+        user.getId().toString(),
+        user.getUsername(),
+        group.getId().toString(),
+        user.getStatus().toString(),
+        user.getDuration().toString(),
+        user.getStartTime().toString()
+      );
+    }
+
+    return user;
+  }
+
   private void validateToken(String token) {
     if (!userRepository.existsByToken(token)) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
-  }
-
-  public void updateStatus(User user) {
-    userRepository.save(user);
-    userRepository.flush();
-    
-    // Send timer update through WebSocket to general timer topic only
-    webSocketService.sendTimerUpdate(
-        user.getId().toString(),
-        user.getUsername(),
-        user.getStatus().toString(),
-        user.getDuration().toMinutes(),
-        user.getStartTime().toString()
-    );
-  }
-
-  public void updateTimer(User user) {
-    userRepository.save(user);
-    userRepository.flush();
-    
-    // Send timer update through WebSocket to general timer topic only
-    webSocketService.sendTimerUpdate(
-        user.getId().toString(),
-        user.getUsername(),
-        user.getStatus().toString(),
-        user.getDuration().toMinutes(),
-        user.getStartTime().toString()
-    );
   }
 
 }

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -383,31 +384,31 @@
 
         // Join a group
         function joinGroup() {
-        if (!stompClient || !stompClient.connected) {
-            return;
-        }
+            if (!stompClient || !stompClient.connected) {
+                return;
+            }
 
-        const groupIdValue = groupId.value;
-        if (!groupIdValue) {
-            alert('Please enter a group ID');
-            return;
-        }
+            const groupIdValue = groupId.value;
+            if (!groupIdValue) {
+                alert('Please enter a group ID');
+                return;
+            }
 
-        // Debug log
-        console.log("Attempting to join group:", groupIdValue);
+            // Debug log
+            console.log("Attempting to join group:", groupIdValue);
 
-        // Subscribe to group topic FIRST
-        subscribeToGroup(groupIdValue);
+            // Subscribe to group topic FIRST
+            subscribeToGroup(groupIdValue);
 
-        // Then send join message
-        stompClient.send("/app/group.join", {}, JSON.stringify({
-            'userId': userId.value,
-            'groupId': groupIdValue
-        }));
+            // Then send join message
+            stompClient.send("/app/group.join", {}, JSON.stringify({
+                'userId': userId.value,
+                'groupId': groupIdValue
+            }));
 
-        activeGroups.add(groupIdValue);
-        updateGroupList();
-        leaveGroupBtn.disabled = activeGroups.size === 0;
+            activeGroups.add(groupIdValue);
+            updateGroupList();
+            leaveGroupBtn.disabled = activeGroups.size === 0;
         }
 
         // Leave a group
@@ -445,32 +446,41 @@
 
         // When joining a group:
         function subscribeToGroup(groupIdValue) {
-        if (!stompClient || !stompClient.connected) {
-            console.error("Cannot subscribe - not connected");
-            return;
-        }
-
-        // Unsubscribe first if already subscribed
-        if (groupSubscriptions.has(groupIdValue)) {
-            groupSubscriptions.get(groupIdValue).unsubscribe();
-            groupSubscriptions.delete(groupIdValue);
-        }
-
-        const topic = '/topic/group.' + groupIdValue;
-        console.log("Subscribing to topic:", topic);
-
-        const subscription = stompClient.subscribe(topic, function(message) {
-            console.log("Received message on", topic, ":", message.body);
-            const parsedMessage = JSON.parse(message.body);
-            
-            if (parsedMessage.content) {
-                displayChatMessage(parsedMessage);
-            } else {
-                logMessage(groupLog, parsedMessage, 'group');
+            if (!stompClient || !stompClient.connected) {
+                console.error("Cannot subscribe - not connected");
+                return;
             }
-        });
 
-        groupSubscriptions.set(groupIdValue, subscription);
+            // Unsubscribe first if already subscribed
+            if (groupSubscriptions.has(groupIdValue)) {
+                groupSubscriptions.get(groupIdValue).unsubscribe();
+                groupSubscriptions.delete(groupIdValue);
+            }
+
+            const topic = '/topic/group.' + groupIdValue;
+            console.log("Subscribing to topic:", topic);
+
+            const subscription = stompClient.subscribe(topic, function (message) {
+                console.log("Received message on", topic, ":", message.body);
+                const parsedMessage = JSON.parse(message.body);
+
+                // Handle different types of messages
+                if (parsedMessage.type === 'TIMER_UPDATE') {
+                    // Handle timer update
+                    logMessage(timerLog, parsedMessage, 'timer');
+                }
+                else if (parsedMessage.content) {
+                    // Handle chat message
+                    displayChatMessage(parsedMessage);
+                }
+                else {
+                    // Handle other group updates (join/leave notifications)
+                    logMessage(groupLog, parsedMessage, 'group');
+                }
+            });
+
+            groupSubscriptions.set(groupIdValue, subscription);
+            console.log("Successfully subscribed to group:", groupIdValue);
         }
 
         // Update the group list UI
@@ -612,10 +622,10 @@
 
             const typeSpan = document.createElement('span');
             typeSpan.className = 'message-type';
-            typeSpan.textContent = type === 'timer' ? 'TIMER' : 
-                                 type === 'group' ? 'GROUP' : 'CHAT';
-            typeSpan.className += type === 'timer' ? ' message-timer' : 
-                                  type === 'group' ? ' message-group' : ' message-chat';
+            typeSpan.textContent = type === 'timer' ? 'TIMER' :
+                type === 'group' ? 'GROUP' : 'CHAT';
+            typeSpan.className += type === 'timer' ? ' message-timer' :
+                type === 'group' ? ' message-group' : ' message-chat';
 
             // Format the message for display
             let displayMessage = { ...message };
@@ -654,7 +664,7 @@
         sendChatBtn.addEventListener('click', sendChatMessage);
 
         // Allow pressing Enter to send chat messages
-        chatMessage.addEventListener('keypress', function(e) {
+        chatMessage.addEventListener('keypress', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendChatMessage();
@@ -665,4 +675,5 @@
         updateConnectionStatus(false);
     </script>
 </body>
+
 </html>

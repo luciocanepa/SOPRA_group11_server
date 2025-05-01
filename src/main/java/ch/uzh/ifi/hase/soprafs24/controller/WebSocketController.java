@@ -18,6 +18,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.TimerUpdate;
 
 import java.util.Map;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 
 @Controller
@@ -40,43 +41,22 @@ public class WebSocketController {
     }
 
     /**
-     * Handles subscription to a group topic
-     * This method is called when a client subscribes to a group topic
-     * 
-     * @param groupId The ID of the group to subscribe to
-     * @return A message confirming the subscription
-     */
-    @MessageMapping("/topic/group/{groupId}")
-    public String handleSubscription(Long groupId, SimpMessageHeaderAccessor headerAccessor) {
-        String sessionId = headerAccessor.getSessionId();
-        String userId = headerAccessor.getUser().getName();
-        webSocketService.addUserToGroup(groupId.toString(), sessionId, userId);
-        
-        return String.format("User with ID %s subscribed to group %d", userId, groupId);
-    }
-
-    /**
      * Handles a user joining a group
      * This method is called when a user is added to a group in the database
      * 
      * @param payload Contains userId and groupId
      */
     @MessageMapping("/group.join")
-    public String handleGroupJoin(@Payload Map<String, String> payload) {
+    public String handleGroupJoin(@Payload Map<String, String> payload, SimpMessageHeaderAccessor headerAccessor) {
         String userId = payload.get("userId");
         String groupId = payload.get("groupId");
+        String sessionId = headerAccessor.getSessionId();
         
         try {
-            User user = userService.getUserById(Long.parseLong(userId), "");
-            
-            if (payload.containsKey("sessionId")) {
-                String sessionId = payload.get("sessionId");
-                webSocketService.addUserToGroup(groupId, sessionId, userId);
-            }
-            
-            webSocketService.notifyGroupMembers(user, Long.parseLong(groupId));
+            User user = userService.findById(Long.parseLong(userId));            
+            webSocketService.addUserToGroup(groupId, sessionId, userId);
 
-            return String.format("User with ID %s joined group %d", userId, groupId);
+            return String.format("User with ID %s joined group %s", userId, groupId);
         } catch (Exception e) {
             return String.format("Error handling group join: %s", e.getMessage());
         }
@@ -94,10 +74,8 @@ public class WebSocketController {
         String groupId = payload.get("groupId");
         
         try {
-            User user = userService.getUserById(Long.parseLong(userId), "");
-            
+            User user = userService.findById(Long.parseLong(userId));
             webSocketService.removeUserFromGroupByUserId(groupId, userId);
-            webSocketService.notifyGroupLeave(user, Long.parseLong(groupId));
 
             return String.format("User with ID %s left group %d", userId, groupId);
         } catch (Exception e) {
@@ -105,82 +83,43 @@ public class WebSocketController {
         }
     }
 
-    /**
-     * Handles timer updates from users
-     * 
-     * @param timerUpdate Contains userId, status, duration, and startTime
-     */
-    @MessageMapping("/timer.update")
-    public String handleTimerUpdate(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor headerAccessor) {
-        String userId;
-        try {
-            userId = null;
-            if (headerAccessor.getUser() != null) {
-                userId = headerAccessor.getUser().getName();
-            } else if (payload.containsKey("userId")) {
-                userId = payload.get("userId").toString();
-            } else {
-                return String.format("No userId found in request");
-            }
-            
-            TimerUpdate timerUpdate = new TimerUpdate();
-            timerUpdate.setUserId(userId);
-            timerUpdate.setStatus((String) payload.get("status"));
-            timerUpdate.setDuration(((Number) payload.get("duration")).longValue());
-            timerUpdate.setStartTime((String) payload.get("startTime"));
-
-            try {
-                User user = userService.getUserById(Long.parseLong(userId), "");
-                timerUpdate.setUsername(user.getUsername());
-            } catch (Exception e) {
-                return String.format("Error getting user for timer update: %s", e.getMessage());
-            }
-
-            webSocketService.sendMessageToTopic("/topic/timer", timerUpdate);
-
-            return String.format("Timer update sent to topic /topic/timer");
-        } catch (Exception e) {
-            return String.format("Error handling timer update: %s", e.getMessage());
-        }
-    }
-
     @MessageMapping("/group.message")
     public String handleGroupMessage(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor headerAccessor) {
-        
-
         String senderId = payload.get("senderId").toString();
+        String groupId = payload.get("groupId").toString();
 
         ChatMessage message = new ChatMessage();
         message.setSenderId(senderId);
         message.setTimestamp(LocalDateTime.now());
-        message.setGroupId((String) payload.get("groupId"));
-        message.setContent((String) payload.get("content"));
+        message.setGroupId(groupId);
+        message.setContent(payload.get("content").toString());
 
         try {
-            User user = userService.getUserById(Long.parseLong(senderId), "");
-            message.setSenderName(user.getUsername());
+            String senderName = userService.findById(Long.parseLong(senderId)).getUsername();
+            message.setSenderName(senderName);
+            
+            webSocketService.sendMessageToGroup(groupId, Map.of(
+                "type", "CHAT",
+                "senderId", message.getSenderId(),
+                "senderName", senderName,
+                "content", message.getContent(),
+                "timestamp", message.getTimestamp().toString()
+            ));
+
+            return String.format("Message sent to topic /topic/group.%s", groupId);
         } catch (Exception e) {
-            return String.format("Error getting user for message: %s", e.getMessage());
+            return String.format("Error sending message: %s", e.getMessage());
         }
-        
-        
-        // Broadcast to group
-        String topic = "/topic/group." + message.getGroupId();
-        System.out.println("Broadcasting to: " + topic);
-        System.out.println("Message content: " + message.getContent());
-        messagingTemplate.convertAndSend("/topic/group." + message.getGroupId(), message);
-
-        return String.format("Message sent to topic /topic/group." + payload.get("groupId"));
     }
 
-    /**
-     * Handles subscription to a group topic
-     * This method is called when a client subscribes to a group topic
-     * 
-     * @return A welcome message
-     */
-    @SubscribeMapping("/topic/group/{groupId}")
-    public String handleGroupSubscription() {
-        return "Welcome to the group!";
-    }
+    // /**
+    //  * Handles subscription to a group topic
+    //  * This method is called when a client subscribes to a group topic
+    //  * 
+    //  * @return A welcome message
+    //  */
+    // @SubscribeMapping("/topic/group/{groupId}")
+    // public String handleGroupSubscription() {
+    //     return "Welcome to the group!";
+    // }
 } 

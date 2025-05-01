@@ -25,8 +25,7 @@ public class WebSocketService {
     }
 
     public void addUserToGroup(String groupId, String sessionId, String userId) {
-        groupSessions.computeIfAbsent(groupId, k -> new ConcurrentHashMap<>())
-                .put(sessionId, userId);
+        groupSessions.computeIfAbsent(groupId, k -> new ConcurrentHashMap<>()).put(sessionId, userId);
         
         userSessions.put(userId, sessionId);
     }
@@ -52,54 +51,39 @@ public class WebSocketService {
             removeUserFromGroup(groupId, sessionId);
         }
     }
-
-    public void sendMessageToGroup(String groupId, Map<String, Object> message) {
-        messagingTemplate.convertAndSend("/topic/group." + groupId, message);
-    }
     
-    /**
-     * Sends a message to a specific topic
-     * 
-     * @param topic The topic to send the message to
-     * @param payload The message payload
-     */
-    public void sendMessageToTopic(String topic, Object payload) {
-        messagingTemplate.convertAndSend(topic, payload);
-    }
+    // /**
+    //  * Sends a message to a specific topic
+    //  * 
+    //  * @param topic The topic to send the message to
+    //  * @param payload The message payload
+    //  */
+    // public void sendMessageToTopic(String topic, Object payload) {
+    //     messagingTemplate.convertAndSend(topic, payload);
+    // }
     
-    public void notifyGroupMembers(User user, Long groupId) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("type", "GROUP_UPDATE");
-        data.put("userId", user.getId());
-        data.put("username", user.getUsername());
-        data.put("status", user.getStatus());
-        data.put("message", String.format("User %s has joined the group", user.getUsername()));
-        
-        messagingTemplate.convertAndSend("/topic/group." + groupId, data);
-    }
-    
-    public void notifyGroupLeave(User user, Long groupId) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("type", "GROUP_UPDATE");
-        data.put("userId", user.getId());
-        data.put("username", user.getUsername());
-        data.put("status", user.getStatus());
-        data.put("message", String.format("User %s has left the group", user.getUsername()));
-        
-        messagingTemplate.convertAndSend("/topic/group." + groupId, data);
-    }
-    
-    public void sendTimerUpdate(String userId, String username, String status, long duration, String startTime) {
+    public void sendTimerUpdate(String userId, String username, String groupId, String status, String duration, String startTime) {
         Map<String, Object> data = new HashMap<>();
         data.put("type", "TIMER_UPDATE");
         data.put("userId", userId);
         data.put("username", username);
+        data.put("groupId", groupId);
         data.put("status", status);
         data.put("duration", duration);
         data.put("startTime", startTime);
         
-        // Send to timer topic only
-        messagingTemplate.convertAndSend("/topic/timer", data);
+        String destination = "/topic/group." + groupId;
+        messagingTemplate.convertAndSend(destination, data);
+    }
+
+    public void sendMessageToGroup(String groupId, Map<String, Object> message) {
+        String destination = "/topic/group." + groupId;
+        try {
+            messagingTemplate.convertAndSend(destination, message);
+        } catch (Exception e) {
+            System.err.println("Error sending message to " + destination + ": " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
