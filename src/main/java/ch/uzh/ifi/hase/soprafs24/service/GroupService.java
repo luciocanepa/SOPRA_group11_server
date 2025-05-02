@@ -64,11 +64,11 @@ public class GroupService {
     public Group updateGroup(Long groupId, Group updatedGroup, String token) {
         validateToken(token);
         User admin = userRepository.findByToken(token);
-        if (!admin.getId().equals(updatedGroup.getAdminId())) {
+        
+        Group existingGroup = getGroupById(groupId, token);
+        if (!admin.getId().equals(existingGroup.getAdminId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(FORBIDDEN, "update"));
         }
-
-        Group existingGroup = getGroupById(groupId, token);
         
         if (updatedGroup.getName() != null) {
             existingGroup.setName(updatedGroup.getName());
