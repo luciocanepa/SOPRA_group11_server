@@ -213,17 +213,45 @@ class UserServiceTest {
       User userWithNoGroups = new User();
       userWithNoGroups.setId(2L);
       userWithNoGroups.setUsername("userWithNoGroups");
+      userWithNoGroups.setToken("test-token");  // Set a token
       userWithNoGroups.setMemberships(Collections.emptyList()); // No groups
 
+      // Mock token validation
+      Mockito.when(userRepository.existsByToken("test-token")).thenReturn(true);
+      Mockito.when(userRepository.findByToken("test-token")).thenReturn(userWithNoGroups);
       Mockito.when(userRepository.findById(userWithNoGroups.getId())).thenReturn(Optional.of(userWithNoGroups));
       Mockito.when(membershipService.getActiveGroupsForUser(userWithNoGroups)).thenReturn(Collections.emptyList());
 
       // when
-      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId(), "valid-token");
+      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId(), "test-token");
 
       // then
       assertNotNull(groups);
       assertTrue(groups.isEmpty(), "Expected an empty list of groups");
+  }
+
+  @Test
+  void getGroupsForUser_shouldThrowUnauthorized_whenInvalidToken() {
+      // given
+      String invalidToken = "invalid-token";
+      Mockito.when(userRepository.existsByToken(invalidToken)).thenReturn(false);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(1L, invalidToken));
+  }
+
+  @Test
+  void getGroupsForUser_shouldThrowForbidden_whenUserIdDoesNotMatchToken() {
+      // given
+      Long differentUserId = 2L;
+      String validToken = "valid-token";
+      
+      // Mock that the token exists and returns our testUser (with ID 1)
+      Mockito.when(userRepository.existsByToken(validToken)).thenReturn(true);
+      Mockito.when(userRepository.findByToken(validToken)).thenReturn(testUser);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(differentUserId, validToken));
   }
 
   @Test
@@ -288,4 +316,57 @@ class UserServiceTest {
         Mockito.verify(userRepository, Mockito.never()).save(Mockito.any());
         Mockito.verify(userRepository, Mockito.never()).flush();
     }
+
+  @Test
+  void logoutUser_shouldThrowUnauthorized_whenInvalidToken() {
+      // given
+      String invalidToken = "invalid-token";
+      Mockito.when(userRepository.existsByToken(invalidToken)).thenReturn(false);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.logoutUser(1L, invalidToken));
+  }
+
+  @Test
+  void logoutUser_shouldThrowForbidden_whenUserIdDoesNotMatchToken() {
+      // given
+      Long differentUserId = 2L;
+      String validToken = "valid-token";
+      
+      // Mock that the token exists and returns our testUser (with ID 1)
+      Mockito.when(userRepository.existsByToken(validToken)).thenReturn(true);
+      Mockito.when(userRepository.findByToken(validToken)).thenReturn(testUser);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.logoutUser(differentUserId, validToken));
+  }
+
+  @Test
+  void logoutUser_success() {
+      // given
+      String validToken = "valid-token";
+      Long userId = 1L;
+      
+      // Mock that the token exists and returns our testUser
+      Mockito.when(userRepository.existsByToken(validToken)).thenReturn(true);
+      Mockito.when(userRepository.findByToken(validToken)).thenReturn(testUser);
+      
+      // when
+      User loggedOutUser = userService.logoutUser(userId, validToken);
+      
+      // then
+      assertEquals(UserStatus.OFFLINE, loggedOutUser.getStatus());
+      Mockito.verify(userRepository).save(testUser);
+      Mockito.verify(userRepository).flush();
+      
+      // Verify WebSocket notifications were sent for each group
+      Mockito.verify(webSocketService, Mockito.times(2)).sendTimerUpdate(
+          Mockito.eq(testUser.getId().toString()),
+          Mockito.eq(testUser.getUsername()),
+          Mockito.anyString(),
+          Mockito.eq(UserStatus.OFFLINE.toString()),
+          Mockito.anyString(),
+          Mockito.anyString()
+      );
+  }
 }

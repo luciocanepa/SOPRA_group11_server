@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -98,6 +99,19 @@ public class UserService {
     userByUsername.setStatus(UserStatus.ONLINE);
     userByUsername = userRepository.save(userByUsername);
     userRepository.flush();
+
+    // send status update to all groups the user is in with websocket
+    List<Group> groupIds = membershipService.getActiveGroupsForUser(userByUsername);
+    for (Group group : groupIds) {
+      webSocketService.sendTimerUpdate(
+        userByUsername.getId().toString(),
+        userByUsername.getUsername(),
+        group.getId().toString(),
+        userByUsername.getStatus().toString(),
+        "0",
+        LocalDateTime.now().toString()
+      );
+    }
     
     return userByUsername;
   }
@@ -125,20 +139,38 @@ public class UserService {
     }
   }
 
-  public User logoutUser(User user) {
+  public User logoutUser(Long id, String token) {
+    validateToken(token);
+
+    User user = userRepository.findByToken(token);
+    if (!user.getId().equals(id)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
+    }
+
     user.setStatus(UserStatus.OFFLINE);
     userRepository.save(user);
     userRepository.flush();
+    
+    // send status update to all groups the user is in with websocket
+    List<Group> groupIds = membershipService.getActiveGroupsForUser(user);
+    for (Group group : groupIds) {
+      webSocketService.sendTimerUpdate(
+        user.getId().toString(),
+        user.getUsername(),
+        group.getId().toString(),
+        user.getStatus().toString(),
+        "0",
+        LocalDateTime.now().toString()
+      );
+    }
+    
     return user;
-
   }
 
   public List<Group> getGroupsForUser(Long userId, String token) {
     validateToken(token);
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
-
-    if (!user.getId().equals(userId)) {
+    User user = userRepository.findByToken(token);
+    if(!user.getId().equals(userId)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
     }
 
