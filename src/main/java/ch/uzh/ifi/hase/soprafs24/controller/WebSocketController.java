@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import ch.uzh.ifi.hase.soprafs24.service.WebSocketService;
+import ch.uzh.ifi.hase.soprafs24.service.AuthService;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
@@ -27,6 +28,7 @@ public class WebSocketController {
     private final WebSocketService webSocketService;
     private final GroupService groupService;
     private final UserService userService;
+    private final AuthService authService;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -34,10 +36,12 @@ public class WebSocketController {
     @Autowired
     public WebSocketController(WebSocketService webSocketService, 
                              GroupService groupService,
-                             UserService userService) {
+                             UserService userService,
+                             AuthService authService) {
         this.webSocketService = webSocketService;
         this.groupService = groupService;
         this.userService = userService;
+        this.authService = authService;
     }
 
     /**
@@ -54,7 +58,7 @@ public class WebSocketController {
         String groupId = payload.get("groupId");
         String sessionId = headerAccessor.getSessionId();
         
-        webSocketService.authCheck(userId, groupId, token);
+        authService.authCheck(userId, groupId, token);
         
         try {
             webSocketService.addUserToGroup(groupId, sessionId, userId);
@@ -76,7 +80,7 @@ public class WebSocketController {
         String userId = payload.get("userId");
         String groupId = payload.get("groupId");
         
-        webSocketService.authCheck(userId, groupId, token);
+        authService.authCheck(userId, groupId, token);
         
         try {
             User user = userService.findById(Long.parseLong(userId));
@@ -93,7 +97,7 @@ public class WebSocketController {
         String senderId = payload.get("senderId").toString();
         String groupId = payload.get("groupId").toString();
 
-        webSocketService.authCheck(senderId, groupId, token);
+        authService.authCheck(senderId, groupId, token);
 
         ChatMessage message = new ChatMessage();
         message.setSenderId(senderId);
@@ -116,6 +120,38 @@ public class WebSocketController {
             return String.format("Message sent to topic /topic/group.%s", groupId);
         } catch (Exception e) {
             return String.format("Error sending message: %s", e.getMessage());
+        }
+    }
+
+    @MessageMapping("group.sync")
+    public String handleGroupSync(@Payload Map<String, Object> payload, @Header("Authorization") String token) {
+        
+        String senderId = payload.get("senderId").toString();
+        String groupId = payload.get("groupId").toString();
+
+        authService.authCheck(senderId, groupId, token);
+
+        try{
+            User user = userService.findById(Long.parseLong(senderId));
+            String senderName = user.getUsername();
+            String startTime = user.getStartTime().toString();
+            String duration = user.getDuration().toString();
+            String secondDuration = payload.get("secondDuration").toString();
+            String status = user.getStatus().toString();
+
+            webSocketService.sendMessageToGroup(groupId, Map.of(
+                "type", "SYNC",
+                "senderId", senderId,
+                "senderName", senderName,
+                "startTime", startTime,
+                "duration", duration,
+                "secondDuration", secondDuration,
+                "status", status
+            ));
+            return String.format("Message sent to topic /topic/group.%s", groupId);
+        } catch (Exception e) {
+            System.err.println("Error sending message to: " + e.getMessage());
+            return String.format("Error sending sync: %s", e.getMessage());
         }
     }
 } 

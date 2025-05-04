@@ -262,6 +262,7 @@
                 <label for="timerDuration">Duration (minutes):</label>
                 <input type="number" id="timerDuration" value="25">
                 <button id="sendTimerBtn" disabled>Send Timer Update</button>
+                <button id="syncTimerBtn" disabled>Sync Timer</button>
             </div>
             <h3>Timer Messages</h3>
             <div id="timerLog" class="log"></div>
@@ -298,6 +299,7 @@
         const timerStatus = document.getElementById('timerStatus');
         const timerDuration = document.getElementById('timerDuration');
         const sendTimerBtn = document.getElementById('sendTimerBtn');
+        const syncTimerBtn = document.getElementById('syncTimerBtn');
         const timerLog = document.getElementById('timerLog');
         const chatGroupId = document.getElementById('chatGroupId');
         const chatMessage = document.getElementById('chatMessage');
@@ -352,6 +354,7 @@
                 // Enable buttons
                 joinGroupBtn.disabled = false;
                 sendTimerBtn.disabled = false;
+                syncTimerBtn.disabled = false;
                 sendChatBtn.disabled = false;
             }, function (error) {
                 console.error('STOMP error: ' + error);
@@ -723,12 +726,46 @@
             logElement.scrollTop = logElement.scrollHeight;
         }
 
+        function syncTimer() {
+            if (!stompClient || !stompClient.connected) {
+                console.error('Not connected to WebSocket server');
+                return;
+            }
+
+            const tokenValue = token.value;
+            if (!tokenValue) {
+                alert('Please enter an authentication token');
+                return;
+            }
+
+            const groupIdValue = groupId.value;
+            if (!groupIdValue) {
+                alert('Please select a group first');
+                return;
+            }
+
+            const messageHeaders = {
+                'Authorization': tokenValue
+            };
+            
+            stompClient.send("/app/group.sync", messageHeaders, JSON.stringify({
+                'senderId': userId.value,
+                'groupId': groupIdValue,
+                'secondDuration': `PT${timerDuration.value}M`  // Convert minutes to seconds 
+            }));
+
+            console.log("Sent timer sync request");
+            
+            
+        }
+
         // Event listeners
         connectBtn.addEventListener('click', connect);
         disconnectBtn.addEventListener('click', disconnect);
         joinGroupBtn.addEventListener('click', joinGroup);
         leaveGroupBtn.addEventListener('click', () => leaveGroup());
         sendTimerBtn.addEventListener('click', sendTimerUpdate);
+        syncTimerBtn.addEventListener('click', syncTimer);
         sendChatBtn.addEventListener('click', sendChatMessage);
 
         // Allow pressing Enter to send chat messages

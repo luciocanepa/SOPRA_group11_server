@@ -6,8 +6,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs24.entity.User;
-
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,14 +18,12 @@ public class WebSocketService {
 
     private final Map<String, Map<String, String>> groupSessions = new ConcurrentHashMap<>();
     private final Map<String, String> userSessions = new ConcurrentHashMap<>();
-    private final UserService userService;
-
-    private static final String FORBIDDEN = "User is not authorized to perform this action";
+    
 
     @Autowired
-    public WebSocketService(SimpMessagingTemplate messagingTemplate, UserService userService) {
+    public WebSocketService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
-        this.userService = userService;
+
     }
 
     public void addUserToGroup(String groupId, String sessionId, String userId) {
@@ -106,21 +102,4 @@ public class WebSocketService {
         return groups;
     }
 
-    public void isUserValid(Long userId, String token) {
-        if(!userService.findById(userId).equals(userService.findByToken(token))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
-        }
-    }
-
-    public void isUserInGroup(Long userId, Long groupId) {
-        if (!userService.isUserInGroup(userId, groupId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
-        }
-    }
-
-    public void authCheck(String userId, String groupId, String token) {
-        userService.validateToken(token);
-        isUserValid(Long.parseLong(userId), token);
-        isUserInGroup(Long.parseLong(userId), Long.parseLong(groupId));
-    }
 } 
