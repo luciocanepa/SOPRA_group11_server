@@ -5,25 +5,19 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+
 
 import ch.uzh.ifi.hase.soprafs24.service.WebSocketService;
 import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 import ch.uzh.ifi.hase.soprafs24.service.UserService;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.ChatMessage;
-import ch.uzh.ifi.hase.soprafs24.entity.Group;
-import ch.uzh.ifi.hase.soprafs24.entity.TimerUpdate;
 
 import java.util.Map;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 
 @Controller
@@ -33,8 +27,6 @@ public class WebSocketController {
     private final WebSocketService webSocketService;
     private final GroupService groupService;
     private final UserService userService;
-
-    private static final String FORBIDDEN = "User is not authorized to perform this action";
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -62,7 +54,7 @@ public class WebSocketController {
         String groupId = payload.get("groupId");
         String sessionId = headerAccessor.getSessionId();
         
-        authCheck(userId, groupId, token);
+        webSocketService.authCheck(userId, groupId, token);
         
         try {
             webSocketService.addUserToGroup(groupId, sessionId, userId);
@@ -84,7 +76,7 @@ public class WebSocketController {
         String userId = payload.get("userId");
         String groupId = payload.get("groupId");
         
-        authCheck(userId, groupId, token);
+        webSocketService.authCheck(userId, groupId, token);
         
         try {
             User user = userService.findById(Long.parseLong(userId));
@@ -101,7 +93,7 @@ public class WebSocketController {
         String senderId = payload.get("senderId").toString();
         String groupId = payload.get("groupId").toString();
 
-        authCheck(senderId, groupId, token);
+        webSocketService.authCheck(senderId, groupId, token);
 
         ChatMessage message = new ChatMessage();
         message.setSenderId(senderId);
@@ -125,23 +117,5 @@ public class WebSocketController {
         } catch (Exception e) {
             return String.format("Error sending message: %s", e.getMessage());
         }
-    }
-
-    void isUserValid(Long userId, String token) {
-        if(!userService.findById(userId).equals(userService.findByToken(token))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
-        }
-    }
-
-    void isUserInGroup(Long userId, Long groupId) {
-        if (!userService.isUserInGroup(userId, groupId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
-        }
-    }
-
-    void authCheck(String userId, String groupId, String token) {
-        userService.validateToken(token);
-        isUserValid(Long.parseLong(userId), token);
-        isUserInGroup(Long.parseLong(userId), Long.parseLong(groupId));
     }
 } 
