@@ -52,23 +52,20 @@ class ActivityServiceTest {
         testActivity1 = new Activity();
         testActivity1.setId(1L);
         testActivity1.setUser(testUser);
-        testActivity1.setDate(LocalDate.of(2024, 3, 1));
-        testActivity1.setStartTime(LocalTime.of(9, 0));
-        testActivity1.setEndTime(LocalTime.of(10, 0));
+        testActivity1.setStartDateTime(LocalDate.of(2024, 3, 1).atTime(9, 0));
+        testActivity1.setEndDateTime(LocalDate.of(2024, 3, 1).atTime(10, 0));
 
         testActivity2 = new Activity();
         testActivity2.setId(2L);
         testActivity2.setUser(testUser);
-        testActivity2.setDate(LocalDate.of(2024, 3, 1)); // Same date as activity1
-        testActivity2.setStartTime(LocalTime.of(14, 0));
-        testActivity2.setEndTime(LocalTime.of(15, 0));
+        testActivity2.setStartDateTime(LocalDate.of(2024, 3, 1).atTime(14, 0));
+        testActivity2.setEndDateTime(LocalDate.of(2024, 3, 1).atTime(15, 0));
 
         testActivity3 = new Activity();
         testActivity3.setId(3L);
         testActivity3.setUser(testUser);
-        testActivity3.setDate(LocalDate.of(2024, 3, 15));
-        testActivity3.setStartTime(LocalTime.of(11, 0));
-        testActivity3.setEndTime(LocalTime.of(12, 30));
+        testActivity3.setStartDateTime(LocalDate.of(2024, 3, 15).atTime(11, 0));
+        testActivity3.setEndDateTime(LocalDate.of(2024, 3, 15).atTime(12, 30));
 
         // Mock userRepository behavior
         when(userRepository.findByToken(validToken)).thenReturn(testUser);
@@ -80,7 +77,7 @@ class ActivityServiceTest {
         LocalDate startDate = LocalDate.of(2024, 3, 1);
         LocalDate endDate = LocalDate.of(2024, 3, 31);
         
-        when(activityRepository.findByUserAndDateBetweenOrderByDateAsc(any(), any(), any()))
+        when(activityRepository.findByUserAndStartDateTimeBetweenOrderByStartDateTimeAsc(any(), any(), any()))
                 .thenReturn(Arrays.asList(testActivity1, testActivity2));
 
         // when
@@ -153,7 +150,7 @@ class ActivityServiceTest {
         LocalDate startDate = LocalDate.of(2024, 3, 1);
         LocalDate endDate = LocalDate.of(2024, 3, 31);
         
-        when(activityRepository.findByUserAndDateBetweenOrderByDateAsc(any(), any(), any()))
+        when(activityRepository.findByUserAndStartDateTimeBetweenOrderByStartDateTimeAsc(any(), any(), any()))
                 .thenReturn(Arrays.asList(testActivity1, testActivity2, testActivity3));
 
         // when
@@ -180,7 +177,7 @@ class ActivityServiceTest {
         LocalDate startDate = LocalDate.of(2024, 3, 1);
         LocalDate endDate = LocalDate.of(2024, 3, 31);
         
-        when(activityRepository.findByUserAndDateBetweenOrderByDateAsc(any(), any(), any()))
+        when(activityRepository.findByUserAndStartDateTimeBetweenOrderByStartDateTimeAsc(any(), any(), any()))
                 .thenReturn(List.of());
 
         // when
