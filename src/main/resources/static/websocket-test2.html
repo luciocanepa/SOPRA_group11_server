@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #242424;
+        }
+
+        .log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #2a2a2a;
+            font-family: monospace;
+            font-size: 12px;
+            color: #e0e0e0;
+        }
+
+        button {
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #555555;
+            cursor: not-allowed;
+        }
+
+        input,
+        select,
+        textarea {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .connected {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .disconnected {
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #242424;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-connected {
+            background-color: #4CAF50;
+        }
+
+        .status-disconnected {
+            background-color: #ff4444;
+        }
+
+        .group-list {
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            padding: 5px;
+            background-color: #2a2a2a;
+        }
+
+        .group-item {
+            padding: 5px;
+            margin: 2px 0;
+            background-color: #333;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #e0e0e0;
+        }
+
+        .group-item:hover {
+            background-color: #404040;
+        }
+
+        .group-item.active {
+            background-color: #2d4a2d;
+        }
+
+        .message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .message-time {
+            color: #888;
+            font-size: 10px;
+        }
+
+        .message-type {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .message-timer {
+            color: #4d94ff;
+        }
+
+        .message-group {
+            color: #ff9933;
+        }
+
+        .message-chat {
+            color: #9c27b0;
+        }
+
+        .chat-message {
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #333;
+            border-radius: 4px;
+        }
+
+        .chat-sender {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .chat-content {
+            margin-top: 4px;
+        }
+
+        .chat-input {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+
+        .chat-input textarea {
+            height: 60px;
+            resize: vertical;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #242424;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>WebSocket Test Client</h1>
+
+    <div class="status-bar">
+        <div id="statusIndicator" class="status-indicator status-disconnected"></div>
+        <span id="connectionStatus">Disconnected</span>
+        <div style="margin-left: auto;">
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" value="1">
+            <label for="token">Token:</label>
+            <input type="text" id="token" placeholder="Enter auth token">
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <h2>Group Management</h2>
+            <div>
+                <label for="groupId">Group ID:</label>
+                <input type="text" id="groupId" value="1">
+                <button id="joinGroupBtn" disabled>Join Group</button>
+                <button id="leaveGroupBtn" disabled>Leave Group</button>
+            </div>
+            <h3>Active Groups</h3>
+            <div id="groupList" class="group-list"></div>
+            <h3>Group Messages</h3>
+            <div id="groupLog" class="log"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Timer Updates</h2>
+            <div>
+                <label for="timerStatus">Status:</label>
+                <select id="timerStatus">
+                    <option value="ONLINE">Online</option>
+                    <option value="OFFLINE">Offline</option>
+                    <option value="WORK">Work</option>
+                    <option value="BREAK">Break</option>
+                </select>
+                <label for="timerDuration">Duration (minutes):</label>
+                <input type="number" id="timerDuration" value="25">
+                <button id="sendTimerBtn" disabled>Send Timer Update</button>
+                <button id="syncTimerBtn" disabled>Sync Timer</button>
+            </div>
+            <h3>Timer Messages</h3>
+            <div id="timerLog" class="log"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Group Chat</h2>
+            <div>
+                <label for="chatGroupId">Group ID:</label>
+                <input type="text" id="chatGroupId" value="1">
+                <div class="chat-input">
+                    <label for="chatMessage">Message:</label>
+                    <textarea id="chatMessage" placeholder="Type your message here..."></textarea>
+                    <button id="sendChatBtn" disabled>Send Message</button>
+                </div>
+            </div>
+            <h3>Chat Messages</h3>
+            <div id="chatLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const userId = document.getElementById('userId');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const groupId = document.getElementById('groupId');
+        const joinGroupBtn = document.getElementById('joinGroupBtn');
+        const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+        const groupList = document.getElementById('groupList');
+        const groupLog = document.getElementById('groupLog');
+        const timerStatus = document.getElementById('timerStatus');
+        const timerDuration = document.getElementById('timerDuration');
+        const sendTimerBtn = document.getElementById('sendTimerBtn');
+        const syncTimerBtn = document.getElementById('syncTimerBtn');
+        const timerLog = document.getElementById('timerLog');
+        const chatGroupId = document.getElementById('chatGroupId');
+        const chatMessage = document.getElementById('chatMessage');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const chatLog = document.getElementById('chatLog');
+        const token = document.getElementById('token');
+
+        // WebSocket state
+        let stompClient = null;
+        let activeGroups = new Set();
+        let groupSubscriptions = new Map();
+
+        // Connect to WebSocket server
+        function connect() {
+            if (stompClient && stompClient.connected) {
+                return;
+            }
+
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+
+            // Enable debug logging
+            stompClient.debug = function (str) {
+                console.log('STOMP Debug:', str);
+            };
+
+            // Add custom debug logging for headers
+            const originalSend = stompClient.send;
+            stompClient.send = function (destination, headers, body) {
+                console.log('Sending STOMP message:', {
+                    destination,
+                    headers,
+                    body
+                });
+                return originalSend.call(this, destination, headers, body);
+            };
+
+            const connectHeaders = {
+                'userId': userId.value
+            };
+
+            stompClient.connect(connectHeaders, function (frame) {
+                console.log('Connected: ' + frame);
+                updateConnectionStatus(true);
+
+                // Subscribe to timer topic
+                const timerSubscription = stompClient.subscribe('/topic/timer', function (message) {
+                    console.log('Received timer message:', message.body);
+                    logMessage(timerLog, JSON.parse(message.body), 'timer');
+                });
+
+                // Enable buttons
+                joinGroupBtn.disabled = false;
+                sendTimerBtn.disabled = false;
+                syncTimerBtn.disabled = false;
+                sendChatBtn.disabled = false;
+            }, function (error) {
+                console.error('STOMP error: ' + error);
+                updateConnectionStatus(false);
+            });
+        }
+
+        // Disconnect from WebSocket server
+        function disconnect() {
+            if (stompClient) {
+                // Leave all groups
+                activeGroups.forEach(groupId => {
+                    leaveGroup(groupId);
+                });
+
+                stompClient.disconnect();
+                updateConnectionStatus(false);
+                activeGroups.clear();
+                groupSubscriptions.clear();
+                updateGroupList();
+            }
+        }
+
+        // Update connection status UI
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                connectionStatus.textContent = 'Connected';
+                connectionStatus.className = 'connected';
+                statusIndicator.className = 'status-indicator status-connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.className = 'disconnected';
+                statusIndicator.className = 'status-indicator status-disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                joinGroupBtn.disabled = true;
+                leaveGroupBtn.disabled = true;
+                sendTimerBtn.disabled = true;
+                sendChatBtn.disabled = true;
+            }
+        }
+
+        // Join a group
+        function joinGroup() {
+            if (!stompClient || !stompClient.connected) {
+                return;
+            }
+
+            const groupIdValue = groupId.value;
+            const tokenValue = token.value;
+            console.log("Token value:", tokenValue);
+
+            if (!groupIdValue) {
+                alert('Please enter a group ID');
+                return;
+            }
+
+            if (!tokenValue) {
+                alert('Please enter an authentication token');
+                return;
+            }
+
+            // Debug log
+            console.log("Attempting to join group:", groupIdValue);
+
+            // Send join message with auth header
+            const messageHeaders = {
+                'Authorization': tokenValue
+            };
+            console.log("Sending join message with headers:", messageHeaders);
+
+            stompClient.send("/app/group.join", messageHeaders, JSON.stringify({
+                'userId': userId.value,
+                'groupId': groupIdValue
+            }));
+
+            // Subscribe to group topic after successful join
+            setTimeout(() => {
+                subscribeToGroup(groupIdValue);
+            }, 500);
+
+            activeGroups.add(groupIdValue);
+            updateGroupList();
+            leaveGroupBtn.disabled = activeGroups.size === 0;
+        }
+
+        // Leave a group
+        function leaveGroup(groupIdToLeave) {
+            if (!stompClient || !stompClient.connected) {
+                return;
+            }
+
+            const groupIdValue = groupIdToLeave || groupId.value;
+            const tokenValue = token.value;
+
+            if (!groupIdValue) {
+                return;
+            }
+
+            if (!tokenValue) {
+                alert('Please enter an authentication token');
+                return;
+            }
+
+            // Send leave message with auth header
+            const messageHeaders = {
+                'Authorization': tokenValue
+            };
+            stompClient.send("/app/group.leave", messageHeaders, JSON.stringify({
+                'userId': userId.value,
+                'groupId': groupIdValue
+            }));
+
+            // Unsubscribe from group topic
+            if (groupSubscriptions.has(groupIdValue)) {
+                groupSubscriptions.get(groupIdValue).unsubscribe();
+                groupSubscriptions.delete(groupIdValue);
+            }
+
+            // Remove from active groups
+            activeGroups.delete(groupIdValue);
+            updateGroupList();
+
+            // Update leave button state
+            leaveGroupBtn.disabled = activeGroups.size === 0;
+
+            console.log("Left group: " + groupIdValue);
+        }
+
+        // When joining a group:
+        function subscribeToGroup(groupIdValue) {
+            if (!stompClient || !stompClient.connected) {
+                console.error("Cannot subscribe - not connected");
+                return;
+            }
+
+            // Unsubscribe first if already subscribed
+            if (groupSubscriptions.has(groupIdValue)) {
+                console.log("Unsubscribing from previous subscription for group:", groupIdValue);
+                groupSubscriptions.get(groupIdValue).unsubscribe();
+                groupSubscriptions.delete(groupIdValue);
+            }
+
+            const topic = '/topic/group.' + groupIdValue;
+            console.log("Subscribing to topic:", topic);
+
+            const subscription = stompClient.subscribe(topic, function (message) {
+                console.log("Received message on", topic, ":", message.body);
+                const parsedMessage = JSON.parse(message.body);
+                console.log("Parsed message:", parsedMessage);
+
+                // Handle different types of messages
+                switch (parsedMessage.type) {
+                    case 'TIMER_UPDATE':
+                        console.log("Handling timer update");
+                        logMessage(timerLog, parsedMessage, 'timer');
+                        break;
+                    case 'CHAT':
+                        console.log("Handling chat message");
+                        displayChatMessage({
+                            senderId: parsedMessage.senderId,
+                            senderName: parsedMessage.senderName,
+                            content: parsedMessage.content,
+                            timestamp: parsedMessage.timestamp
+                        });
+                        break;
+                    case 'GROUP_UPDATE':
+                        console.log("Handling group update");
+                        logMessage(groupLog, parsedMessage, 'group');
+                        break;
+                    default:
+                        console.log("Unknown message type:", parsedMessage);
+                        logMessage(groupLog, parsedMessage, 'group');
+                }
+            });
+
+            groupSubscriptions.set(groupIdValue, subscription);
+            console.log("Successfully subscribed to group:", groupIdValue);
+            console.log("Current group subscriptions:", Array.from(groupSubscriptions.keys()));
+        }
+
+        // Update the group list UI
+        function updateGroupList() {
+            groupList.innerHTML = '';
+
+            if (activeGroups.size === 0) {
+                groupList.innerHTML = '<div class="group-item">No active groups</div>';
+                return;
+            }
+
+            activeGroups.forEach(groupId => {
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-item active';
+                groupItem.textContent = 'Group ' + groupId;
+                groupItem.onclick = function () {
+                    document.getElementById('groupId').value = groupId;
+                    document.getElementById('chatGroupId').value = groupId;
+                };
+                groupList.appendChild(groupItem);
+            });
+        }
+
+        // Send timer update
+        function sendTimerUpdate() {
+            if (!stompClient || !stompClient.connected) {
+                console.error('Not connected to WebSocket server');
+                return;
+            }
+
+            const tokenValue = token.value;
+            if (!tokenValue) {
+                alert('Please enter an authentication token');
+                return;
+            }
+
+            const now = new Date();
+            const startTime = now.toISOString();
+            const durationMinutes = parseInt(timerDuration.value);
+
+            // First update through REST API like Postman does
+            fetch(`/users/${userId.value}/timer`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': tokenValue
+                },
+                body: JSON.stringify({
+                    'startTime': startTime,
+                    'duration': `PT${durationMinutes}M`,
+                    'status': timerStatus.value
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update timer');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Timer updated successfully:', data);
+
+                    // Log the update locally
+                    logMessage(timerLog, {
+                        'userId': userId.value,
+                        'status': timerStatus.value,
+                        'duration': durationMinutes,
+                        'startTime': startTime
+                    }, 'timer');
+                })
+                .catch(error => {
+                    console.error('Error updating timer:', error);
+                    alert('Failed to update timer: ' + error.message);
+                });
+        }
+
+        // Send chat message
+        function sendChatMessage() {
+            if (!stompClient || !stompClient.connected) {
+                console.error('Not connected to WebSocket server');
+                return;
+            }
+
+            const groupIdValue = chatGroupId.value;
+            const messageContent = chatMessage.value.trim();
+            const tokenValue = token.value;
+
+            if (!groupIdValue) {
+                alert('Please enter a group ID');
+                return;
+            }
+
+            if (!messageContent) {
+                alert('Please enter a message');
+                return;
+            }
+
+            if (!tokenValue) {
+                alert('Please enter an authentication token');
+                return;
+            }
+
+            // Send chat message with auth header
+            const messageHeaders = {
+                'Authorization': tokenValue
+            };
+            stompClient.send("/app/group.message", messageHeaders, JSON.stringify({
+                'senderId': userId.value,
+                'groupId': groupIdValue,
+                'content': messageContent
+            }));
+
+            // Clear input
+            chatMessage.value = '';
+
+            console.log("Sent chat message to group: " + groupIdValue);
+        }
+
+        // Display chat message
+        function displayChatMessage(message) {
+            const chatEntry = document.createElement('div');
+            chatEntry.className = 'chat-message';
+
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = new Date().toLocaleTimeString();
+
+            const sender = document.createElement('div');
+            sender.className = 'chat-sender';
+            sender.textContent = message.senderId + (message.username ? ` (${message.username})` : '');
+
+            const content = document.createElement('div');
+            content.className = 'chat-content';
+            content.textContent = message.content;
+
+            chatEntry.appendChild(time);
+            chatEntry.appendChild(sender);
+            chatEntry.appendChild(content);
+
+            chatLog.appendChild(chatEntry);
+            chatLog.scrollTop = chatLog.scrollHeight;
+
+            // Also log to the general group log
+            logMessage(groupLog, message, 'chat');
+        }
+
+        // Log a message to the specified log element
+        function logMessage(logElement, message, type) {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'message';
+
+            const time = document.createElement('span');
+            time.className = 'message-time';
+            time.textContent = new Date().toLocaleTimeString() + ' ';
+
+            const typeSpan = document.createElement('span');
+            typeSpan.className = 'message-type';
+            typeSpan.textContent = type === 'timer' ? 'TIMER' :
+                type === 'group' ? 'GROUP' : 'CHAT';
+            typeSpan.className += type === 'timer' ? ' message-timer' :
+                type === 'group' ? ' message-group' : ' message-chat';
+
+            // Format the message for display
+            let displayMessage = { ...message };
+
+            // If it's a timer message, format the duration for display
+            if (type === 'timer' && message.duration) {
+                if (typeof message.duration === 'string') {
+                    // Handle ISO duration format (PT25M)
+                    const durationMatch = message.duration.match(/PT(\d+)M/);
+                    if (durationMatch && durationMatch[1]) {
+                        displayMessage.duration = `${durationMatch[1]} minutes`;
+                    }
+                } else {
+                    // Handle number format (already in minutes)
+                    displayMessage.duration = `${message.duration} minutes`;
+                }
+            }
+
+            const content = document.createElement('pre');
+            content.textContent = JSON.stringify(displayMessage, null, 2);
+
+            logEntry.appendChild(time);
+            logEntry.appendChild(typeSpan);
+            logEntry.appendChild(content);
+
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function syncTimer() {
+            if (!stompClient || !stompClient.connected) {
+                console.error('Not connected to WebSocket server');
+                return;
+            }
+
+            const tokenValue = token.value;
+            if (!tokenValue) {
+                alert('Please enter an authentication token');
+                return;
+            }
+
+            const groupIdValue = groupId.value;
+            if (!groupIdValue) {
+                alert('Please select a group first');
+                return;
+            }
+
+            const messageHeaders = {
+                'Authorization': tokenValue
+            };
+            
+            stompClient.send("/app/group.sync", messageHeaders, JSON.stringify({
+                'senderId': userId.value,
+                'groupId': groupIdValue,
+                'secondDuration': `PT${timerDuration.value}M`  // Convert minutes to seconds 
+            }));
+
+            console.log("Sent timer sync request");
+            
+            
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        joinGroupBtn.addEventListener('click', joinGroup);
+        leaveGroupBtn.addEventListener('click', () => leaveGroup());
+        sendTimerBtn.addEventListener('click', sendTimerUpdate);
+        syncTimerBtn.addEventListener('click', syncTimer);
+        sendChatBtn.addEventListener('click', sendChatMessage);
+
+        // Allow pressing Enter to send chat messages
+        chatMessage.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        // Initialize UI
+        updateConnectionStatus(false);
+    </script>
+</body>
+
+</html>

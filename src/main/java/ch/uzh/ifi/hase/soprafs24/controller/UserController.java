@@ -86,8 +86,8 @@ public class UserController {
 
   @PutMapping("/users/{id}/timer")
   @ResponseStatus(HttpStatus.OK)
-  public UserTimerPutDTO updateTimer(@PathVariable("id") Long id, @RequestBody UserTimerPutDTO userTimerPutDTO) {
-    User user = userService.updateStatus(userTimerPutDTO, id);
+  public UserTimerPutDTO updateTimer(@PathVariable("id") Long id, @RequestBody UserTimerPutDTO userTimerPutDTO, @RequestHeader("Authorization") String token) {
+    User user = userService.updateStatus(userTimerPutDTO, id, token);
 
     return DTOMapper.INSTANCE.convertEntityToUserTimerPutDTO(user);
   }
@@ -95,8 +95,7 @@ public class UserController {
   @PostMapping("/users/{id}/logout")
   @ResponseStatus(HttpStatus.OK)
   public UserGetDTO logoutUser(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
-    User user = userService.getUserById(id, token);
-    user = userService.logoutUser(user);
+    User user = userService.logoutUser(id, token);
     
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
   }

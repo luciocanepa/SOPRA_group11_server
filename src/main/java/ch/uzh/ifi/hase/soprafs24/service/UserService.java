@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.service;
 
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
@@ -17,8 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
 
 /**
  * User Service
@@ -36,6 +40,7 @@ public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final MembershipService membershipService;
+  private final WebSocketService webSocketService;
 
   private static final String NOT_FOUND = "%s with ID %s was not found";
   private static final String CONFLICT = "User with username %s already exists";
@@ -45,10 +50,12 @@ public class UserService {
   @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
                     MembershipService membershipService,
-                    PasswordEncoder passwordEncoder) {
+                    PasswordEncoder passwordEncoder,
+                    WebSocketService webSocketService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.membershipService = membershipService;
+    this.webSocketService = webSocketService;
   }
 
   public List<User> getUsers(String token) {
@@ -92,6 +99,19 @@ public class UserService {
     userByUsername.setStatus(UserStatus.ONLINE);
     userByUsername = userRepository.save(userByUsername);
     userRepository.flush();
+
+    // send status update to all groups the user is in with websocket
+    List<Group> groupIds = membershipService.getActiveGroupsForUser(userByUsername);
+    for (Group group : groupIds) {
+      webSocketService.sendTimerUpdate(
+        userByUsername.getId().toString(),
+        userByUsername.getUsername(),
+        group.getId().toString(),
+        userByUsername.getStatus().toString(),
+        "0",
+        LocalDateTime.now().toString()
+      );
+    }
     
     return userByUsername;
   }
@@ -119,32 +139,38 @@ public class UserService {
     }
   }
 
-  public User updateStatus(UserTimerPutDTO userTimer, Long userId) {
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
-    
-    user.setStartTime(userTimer.getStartTime());
-    user.setDuration(userTimer.getDuration());
-    user.setStatus(userTimer.getStatus());
-    userRepository.save(user);
-    userRepository.flush();
-    return user;
-  }
+  public User logoutUser(Long id, String token) {
+    validateToken(token);
 
-  public User logoutUser(User user) {
+    User user = userRepository.findByToken(token);
+    if (!user.getId().equals(id)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
+    }
+
     user.setStatus(UserStatus.OFFLINE);
     userRepository.save(user);
     userRepository.flush();
+    
+    // send status update to all groups the user is in with websocket
+    List<Group> groupIds = membershipService.getActiveGroupsForUser(user);
+    for (Group group : groupIds) {
+      webSocketService.sendTimerUpdate(
+        user.getId().toString(),
+        user.getUsername(),
+        group.getId().toString(),
+        user.getStatus().toString(),
+        "0",
+        LocalDateTime.now().toString()
+      );
+    }
+    
     return user;
-
   }
 
   public List<Group> getGroupsForUser(Long userId, String token) {
     validateToken(token);
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId)));
-
-    if (!user.getId().equals(userId)) {
+    User user = userRepository.findByToken(token);
+    if(!user.getId().equals(userId)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
     }
 
@@ -195,7 +221,48 @@ public class UserService {
     return user;
   }
 
-  private void validateToken(String token) {
+  public User updateStatus(UserTimerPutDTO userTimer, Long userId, String token) {
+    User user = findById(userId);
+    if (user == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", userId));
+    }
+
+    if (!user.getId().equals(userId)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
+    }
+
+    user.setStatus(userTimer.getStatus());
+    user.setStartTime(userTimer.getStartTime());
+    user.setDuration(userTimer.getDuration());
+    
+    user = userRepository.save(user);
+    userRepository.flush();
+
+    List<Group> groupIds = membershipService.getActiveGroupsForUser(user);
+    for (Group group : groupIds) {
+      webSocketService.sendTimerUpdate(
+        user.getId().toString(),
+        user.getUsername(),
+        group.getId().toString(),
+        user.getStatus().toString(),
+        user.getDuration().toString(),
+        user.getStartTime().toString()
+      );
+    }
+
+    return user;
+  }
+
+  @Transactional
+  public boolean isUserInGroup(Long userId, Long groupId) {
+    User user = findById(userId);
+    return user.getMemberships().stream()
+        .anyMatch(membership -> 
+            membership.getGroup().getId().equals(groupId) && 
+            membership.getStatus() == MembershipStatus.ACTIVE);
+  }
+
+  public void validateToken(String token) {
     if (!userRepository.existsByToken(token)) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }

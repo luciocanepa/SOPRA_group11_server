@@ -34,6 +34,8 @@ class UserServiceTest {
   private PasswordEncoder passwordEncoder;
   @Mock
   private MembershipService membershipService;
+  @Mock
+  private WebSocketService webSocketService;
 
   @InjectMocks
   private UserService userService;
@@ -49,12 +51,13 @@ class UserServiceTest {
   public void setup() {
     MockitoAnnotations.openMocks(this);
 
-    // given
+    // Initialize test user
     testUser = new User();
     testUser.setId(1L);
-    testUser.setUsername("testUsername");
-    testUser.setPassword("testPassword");
-    testUser.setToken("valid-token");
+    testUser.setUsername("testUser");
+    testUser.setPassword("password");
+    testUser.setToken("test-token");
+    testUser.setStatus(UserStatus.ONLINE);
 
     group1 = new Group();
     group1.setId(1L);
@@ -210,13 +213,17 @@ class UserServiceTest {
       User userWithNoGroups = new User();
       userWithNoGroups.setId(2L);
       userWithNoGroups.setUsername("userWithNoGroups");
+      userWithNoGroups.setToken("test-token");  // Set a token
       userWithNoGroups.setMemberships(Collections.emptyList()); // No groups
 
+      // Mock token validation
+      Mockito.when(userRepository.existsByToken("test-token")).thenReturn(true);
+      Mockito.when(userRepository.findByToken("test-token")).thenReturn(userWithNoGroups);
       Mockito.when(userRepository.findById(userWithNoGroups.getId())).thenReturn(Optional.of(userWithNoGroups));
       Mockito.when(membershipService.getActiveGroupsForUser(userWithNoGroups)).thenReturn(Collections.emptyList());
 
       // when
-      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId(), "valid-token");
+      List<Group> groups = userService.getGroupsForUser(userWithNoGroups.getId(), "test-token");
 
       // then
       assertNotNull(groups);
@@ -224,45 +231,142 @@ class UserServiceTest {
   }
 
   @Test
-void updateStatus_validInput_success() {
-    // given
-    UserTimerPutDTO timerDTO = new UserTimerPutDTO();
-    timerDTO.setStartTime(LocalDateTime.now());
-    timerDTO.setDuration(Duration.ofMinutes(25));
-    timerDTO.setStatus(UserStatus.WORK);
-    
-    User existingUser = new User();
-    existingUser.setId(1L);
-    existingUser.setUsername("existingUser");
-    existingUser.setStatus(UserStatus.ONLINE);
-    
-    Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
-    Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(existingUser);
-    
-    // when
-    User updatedUser = userService.updateStatus(timerDTO, 1L);
-    
-    // then
-    Mockito.verify(userRepository, Mockito.times(1)).findById(1L);
-    Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any(User.class));
-    Mockito.verify(userRepository, Mockito.times(1)).flush();
-    
-    assertEquals(timerDTO.getStartTime(), updatedUser.getStartTime());
-    assertEquals(timerDTO.getDuration(), updatedUser.getDuration());
-    assertEquals(timerDTO.getStatus(), updatedUser.getStatus());
-}
+  void getGroupsForUser_shouldThrowUnauthorized_whenInvalidToken() {
+      // given
+      String invalidToken = "invalid-token";
+      Mockito.when(userRepository.existsByToken(invalidToken)).thenReturn(false);
 
-@Test
-void updateStatus_userNotFound_throwsException() {
-    // given
-    UserTimerPutDTO timerDTO = new UserTimerPutDTO();
-    Long nonExistentUserId = 999L;
-    
-    Mockito.when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
-    
-    // when/then
-    assertThrows(ResponseStatusException.class, () -> userService.updateStatus(timerDTO, nonExistentUserId));
-    Mockito.verify(userRepository, Mockito.never()).save(Mockito.any());
-    Mockito.verify(userRepository, Mockito.never()).flush();
-}
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(1L, invalidToken));
+  }
+
+  @Test
+  void getGroupsForUser_shouldThrowForbidden_whenUserIdDoesNotMatchToken() {
+      // given
+      Long differentUserId = 2L;
+      String validToken = "valid-token";
+      
+      // Mock that the token exists and returns our testUser (with ID 1)
+      Mockito.when(userRepository.existsByToken(validToken)).thenReturn(true);
+      Mockito.when(userRepository.findByToken(validToken)).thenReturn(testUser);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.getGroupsForUser(differentUserId, validToken));
+  }
+
+  @Test
+    void updateStatus_validInput_success() {
+        // given
+        UserTimerPutDTO timerDTO = new UserTimerPutDTO();
+        timerDTO.setStartTime(LocalDateTime.now());
+        timerDTO.setDuration(Duration.ofMinutes(25));
+        timerDTO.setStatus(UserStatus.WORK);
+        
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setUsername("existingUser");
+        existingUser.setStatus(UserStatus.ONLINE);
+        existingUser.setToken("test-token");
+        
+        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(existingUser);
+        Mockito.when(membershipService.getActiveGroupsForUser(existingUser)).thenReturn(Arrays.asList(group1));
+        
+        // Mock the WebSocketService.sendTimerUpdate method
+        Mockito.doNothing().when(webSocketService).sendTimerUpdate(
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString()
+        );
+        
+        // when
+        User updatedUser = userService.updateStatus(timerDTO, 1L, "test-token");
+        
+        // then
+        Mockito.verify(userRepository, Mockito.times(1)).findById(1L);
+        Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any(User.class));
+        Mockito.verify(userRepository, Mockito.times(1)).flush();
+        Mockito.verify(webSocketService, Mockito.times(1)).sendTimerUpdate(
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString()
+        );
+        
+        assertEquals(timerDTO.getStartTime(), updatedUser.getStartTime());
+        assertEquals(timerDTO.getDuration(), updatedUser.getDuration());
+        assertEquals(timerDTO.getStatus(), updatedUser.getStatus());
+    }
+
+    @Test
+    void updateStatus_userNotFound_throwsException() {
+        // given
+        UserTimerPutDTO timerDTO = new UserTimerPutDTO();
+        Long nonExistentUserId = 999L;
+        
+        Mockito.when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
+        
+        // when/then
+        assertThrows(ResponseStatusException.class, () -> userService.updateStatus(timerDTO, nonExistentUserId, "test-token"));
+        Mockito.verify(userRepository, Mockito.never()).save(Mockito.any());
+        Mockito.verify(userRepository, Mockito.never()).flush();
+    }
+
+  @Test
+  void logoutUser_shouldThrowUnauthorized_whenInvalidToken() {
+      // given
+      String invalidToken = "invalid-token";
+      Mockito.when(userRepository.existsByToken(invalidToken)).thenReturn(false);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.logoutUser(1L, invalidToken));
+  }
+
+  @Test
+  void logoutUser_shouldThrowForbidden_whenUserIdDoesNotMatchToken() {
+      // given
+      Long differentUserId = 2L;
+      String validToken = "valid-token";
+      
+      // Mock that the token exists and returns our testUser (with ID 1)
+      Mockito.when(userRepository.existsByToken(validToken)).thenReturn(true);
+      Mockito.when(userRepository.findByToken(validToken)).thenReturn(testUser);
+
+      // when / then
+      assertThrows(ResponseStatusException.class, () -> userService.logoutUser(differentUserId, validToken));
+  }
+
+  @Test
+  void logoutUser_success() {
+      // given
+      String validToken = "valid-token";
+      Long userId = 1L;
+      
+      // Mock that the token exists and returns our testUser
+      Mockito.when(userRepository.existsByToken(validToken)).thenReturn(true);
+      Mockito.when(userRepository.findByToken(validToken)).thenReturn(testUser);
+      
+      // when
+      User loggedOutUser = userService.logoutUser(userId, validToken);
+      
+      // then
+      assertEquals(UserStatus.OFFLINE, loggedOutUser.getStatus());
+      Mockito.verify(userRepository).save(testUser);
+      Mockito.verify(userRepository).flush();
+      
+      // Verify WebSocket notifications were sent for each group
+      Mockito.verify(webSocketService, Mockito.times(2)).sendTimerUpdate(
+          Mockito.eq(testUser.getId().toString()),
+          Mockito.eq(testUser.getUsername()),
+          Mockito.anyString(),
+          Mockito.eq(UserStatus.OFFLINE.toString()),
+          Mockito.anyString(),
+          Mockito.anyString()
+      );
+  }
 }

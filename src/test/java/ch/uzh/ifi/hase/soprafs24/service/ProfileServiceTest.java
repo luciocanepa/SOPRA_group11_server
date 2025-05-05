@@ -26,6 +26,9 @@ class ProfileServiceTest {
     @Mock
     private MembershipService membershipService;
     
+    @Mock
+    private WebSocketService webSocketService;
+    
     private PasswordEncoder passwordEncoder;
 
     private User existingUser;
@@ -44,7 +47,7 @@ class ProfileServiceTest {
         existingUser.setToken("valid-token");
         
         // Initialize UserService with mocked dependencies
-        userService = new UserService(userRepository, membershipService, passwordEncoder);
+        userService = new UserService(userRepository, membershipService, passwordEncoder, webSocketService);
     }
 
     @Test
