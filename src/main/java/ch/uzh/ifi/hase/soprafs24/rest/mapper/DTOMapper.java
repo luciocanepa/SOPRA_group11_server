@@ -138,18 +138,16 @@ public interface DTOMapper {
   @Mapping(source = "profilePicture", target = "profilePicture")
   UserPutDTO convertEntityToUserPutDTO(User user);
 
-  @Mapping(source = "date", target = "date")
-  @Mapping(source = "startTime", target = "startTime")
-  @Mapping(source = "endTime", target = "endTime")
+  @Mapping(source = "startDateTime", target = "startDateTime")
+  @Mapping(source = "endDateTime", target = "endDateTime")
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "user", ignore = true)
   Activity convertActivityPostDTOtoEntity(ActivityPostDTO activityPostDTO);
 
   @Mapping(source = "id", target = "id")
   @Mapping(source = "user.id", target = "userId")
-  @Mapping(source = "date", target = "date")
-  @Mapping(source = "startTime", target = "startTime")
-  @Mapping(source = "endTime", target = "endTime")
+  @Mapping(source = "startDateTime", target = "startDateTime")
+  @Mapping(source = "endDateTime", target = "endDateTime")
   ActivityGetDTO convertEntityToActivityGetDTO(Activity activity);
 
 }

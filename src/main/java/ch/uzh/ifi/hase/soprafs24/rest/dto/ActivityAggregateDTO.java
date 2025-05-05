@@ -9,4 +9,4 @@ import lombok.Setter;
 public class ActivityAggregateDTO {
     private LocalDate date;
     private long duration;
-} 
+}

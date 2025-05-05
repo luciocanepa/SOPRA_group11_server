@@ -2,8 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.entity;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,11 +23,8 @@ public class Activity implements Serializable {
     private User user;
 
     @Column(nullable = false)
-    private LocalDate date;
+    private LocalDateTime startDateTime;
 
     @Column(nullable = false)
-    private LocalTime startTime;
-
-    @Column(nullable = false)
-    private LocalTime endTime;
+    private LocalDateTime endDateTime;
 }

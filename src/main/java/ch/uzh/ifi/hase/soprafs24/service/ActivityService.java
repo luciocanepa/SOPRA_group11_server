@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,22 +64,24 @@ public class ActivityService {
         }
 
         // Handle different date range scenarios
-        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.MIN;
-        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+        LocalDateTime effectiveStartDateTime = startDate != null ? startDate.atStartOfDay() : LocalDateTime.MIN;
+        LocalDateTime effectiveEndDateTime = endDate != null ? endDate.plusDays(1).atStartOfDay() : LocalDateTime.now();
 
         // validate date range
-        if (effectiveStartDate.isAfter(effectiveEndDate)) {
+        if (effectiveStartDateTime.isAfter(effectiveEndDateTime)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, INVALID_DATES);
         }
 
-        return activityRepository.findByUserAndDateBetweenOrderByDateAsc(authenticatedUser, effectiveStartDate, effectiveEndDate);
+        return activityRepository.findByUserAndStartDateTimeBetweenOrderByStartDateTimeAsc(
+            authenticatedUser, effectiveStartDateTime, effectiveEndDateTime);
     }
 
     public List<ActivityAggregateDTO> getAggregatedActivities(Long userId, String token, LocalDate startDate, LocalDate endDate) {
         // Get the activities first & checks if the user is authorized
         List<Activity> activities = getActivitiesByDateRange(userId, token, startDate, endDate);
 
-        Map<LocalDate, List<Activity>> groupedByDate = activities.stream().collect(Collectors.groupingBy(Activity::getDate));
+        Map<LocalDate, List<Activity>> groupedByDate = activities.stream()
+            .collect(Collectors.groupingBy(activity -> activity.getStartDateTime().toLocalDate()));
 
         List<ActivityAggregateDTO> aggregatedResults = new ArrayList<>();
         groupedByDate.forEach((date, dailyActivities) -> {
@@ -88,7 +91,7 @@ public class ActivityService {
             // Calculate total duration in minutes for all activities on this date
             long duration = dailyActivities.stream()
                     .mapToLong(activity -> 
-                        Duration.between(activity.getStartTime(), activity.getEndTime()).toMinutes())
+                        Duration.between(activity.getStartDateTime(), activity.getEndDateTime()).toMinutes())
                     .sum();
 
             aggregateDTO.setDuration(duration);
