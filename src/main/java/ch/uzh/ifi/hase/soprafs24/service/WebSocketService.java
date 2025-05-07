@@ -82,7 +82,7 @@ public class WebSocketService {
             System.out.println("Successfully sent message to " + destination);
         } catch (Exception e) {
             System.err.println("Error sending message to " + destination + ": " + e.getMessage());
-            e.printStackTrace();
+            
         }
     }
 
