@@ -85,7 +85,7 @@ public class WebSocketController {
         try {
             User user = userService.findById(Long.parseLong(userId));
             webSocketService.removeUserFromGroupByUserId(groupId, userId);
-            return String.format("User with ID %d left group %d", userId, groupId);
+            return String.format("User with ID %s left group %s", userId, groupId);
         } catch (Exception e) {
             return String.format("Error handling group leave: %s", e.getMessage());
         }
