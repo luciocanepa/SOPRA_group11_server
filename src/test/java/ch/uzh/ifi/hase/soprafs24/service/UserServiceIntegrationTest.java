@@ -244,7 +244,7 @@ class UserServiceIntegrationTest {
       testDTO.setDuration(Duration.parse("PT25M"));
       testDTO.setStatus(UserStatus.WORK);
 
-      User updatedUser = userService.updateStatus(testDTO, testUser.getId());
+      User updatedUser = userService.updateStatus(testDTO, testUser.getId(), testUser.getToken());
 
       assertEquals(testDTO.getStartTime(), updatedUser.getStartTime());
       assertEquals(testDTO.getDuration(), updatedUser.getDuration());
@@ -259,7 +259,7 @@ class UserServiceIntegrationTest {
       testDTO.setDuration(Duration.parse("PT25M"));
       testDTO.setStatus(UserStatus.WORK);
 
-      assertThrows(ResponseStatusException.class, () -> userService.updateStatus(testDTO,1L));
+      assertThrows(ResponseStatusException.class, () -> userService.updateStatus(testDTO, 1L, "test-token"));
 
     }
 }

@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
+import ch.uzh.ifi.hase.soprafs24.entity.Activity;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
@@ -136,5 +137,17 @@ public interface DTOMapper {
   @Mapping(source = "timezone", target = "timezone")
   @Mapping(source = "profilePicture", target = "profilePicture")
   UserPutDTO convertEntityToUserPutDTO(User user);
+
+  @Mapping(source = "startDateTime", target = "startDateTime")
+  @Mapping(source = "endDateTime", target = "endDateTime")
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "user", ignore = true)
+  Activity convertActivityPostDTOtoEntity(ActivityPostDTO activityPostDTO);
+
+  @Mapping(source = "id", target = "id")
+  @Mapping(source = "user.id", target = "userId")
+  @Mapping(source = "startDateTime", target = "startDateTime")
+  @Mapping(source = "endDateTime", target = "endDateTime")
+  ActivityGetDTO convertEntityToActivityGetDTO(Activity activity);
 
 }

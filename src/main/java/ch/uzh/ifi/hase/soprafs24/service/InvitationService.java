@@ -79,8 +79,6 @@ public class InvitationService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "An invitation for this user and group already exists and is pending");
             } else if (existingMembership.getStatus() == MembershipStatus.ACTIVE) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "The user is already a member of the group");
-            } else {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "An invitation for this user and group already exists and is rejected");
             }
         }
         
