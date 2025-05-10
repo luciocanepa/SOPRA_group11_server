@@ -53,6 +53,8 @@ public interface DTOMapper {
   @Mapping(source = "birthday", target = "birthday")
   @Mapping(source = "timezone", target = "timezone")
   @Mapping(source = "profilePicture", target = "profilePicture")
+  @Mapping(source = "startTime", target = "startTime")
+  @Mapping(source = "duration", target = "duration")
   UserGetDTO convertEntityToUserGetDTO(User user);
 
   @Mapping(source = "startTime", target = "startTime")
