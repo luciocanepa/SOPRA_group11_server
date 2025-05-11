@@ -20,5 +20,7 @@ public class UserGetDTO {
   private LocalDate birthday;
   private String timezone;
   private String profilePicture;
+  private String startTime;
+  private String duration;
 
 }
