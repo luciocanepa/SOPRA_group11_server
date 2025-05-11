@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs24.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.Activity;
+import ch.uzh.ifi.hase.soprafs24.entity.CalendarEntries;
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 import ch.uzh.ifi.hase.soprafs24.entity.GroupMembership;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
@@ -149,5 +150,24 @@ public interface DTOMapper {
   @Mapping(source = "startDateTime", target = "startDateTime")
   @Mapping(source = "endDateTime", target = "endDateTime")
   ActivityGetDTO convertEntityToActivityGetDTO(Activity activity);
+
+
+  @Mapping(source = "title", target = "title")
+  @Mapping(source = "description", target = "description")
+  @Mapping(source = "startTime", target = "startTime")
+  @Mapping(source = "endTime", target = "endTime")
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "groupId", ignore = true)
+  @Mapping(target = "createdByUsername", ignore = true)
+  CalendarEntries convertCalendarEntryPostDTOtoEntity(CalendarEntriesPostDTO calendarEntryPostDTO);
+
+  @Mapping(source = "id", target = "id")
+  @Mapping(source = "groupId", target = "groupId")
+  @Mapping(source = "createdByUsername", target = "createdByUsername")
+  @Mapping(source = "title", target = "title")
+  @Mapping(source = "description", target = "description")
+  @Mapping(source = "startTime", target = "startTime")
+  @Mapping(source = "endTime", target = "endTime")
+  CalendarEntriesGetDTO convertEntityToCalendarEntryGetDTO(CalendarEntries calendarEntry);
 
 }
