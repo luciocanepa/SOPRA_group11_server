@@ -14,7 +14,10 @@ public class CalendarEntries {
     @GeneratedValue
     private Long id;
 
-    private Long groupId;
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private Group group;
+    
     private String createdByUsername;
 
     private LocalDateTime startTime;

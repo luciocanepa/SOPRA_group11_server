@@ -13,4 +13,6 @@ public class CalendarEntriesPostDTO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String createdByUsername;
+    private Long groupId;
+
 }

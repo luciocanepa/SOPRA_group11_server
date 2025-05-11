@@ -16,7 +16,7 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.CalendarEntriesRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
 
-
+import ch.uzh.ifi.hase.soprafs24.entity.Group;
 
 @Service
 public class CalendarEntryService {
@@ -43,8 +43,11 @@ public class CalendarEntryService {
         CalendarEntries session = new CalendarEntries();
 
         User creator = findByToken(token);
-        
-        session.setGroupId(groupId);
+        Group group = new Group();
+
+        group.setId(groupId);
+        session.setGroup(group);
+
         session.setCreatedByUsername(creator.getUsername());
         session.setTitle(request.getTitle());
         session.setDescription(request.getDescription());

@@ -67,6 +67,7 @@ public interface DTOMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "memberships", ignore = true)
   @Mapping(target = "activeUsers", ignore = true)
+  @Mapping(target = "calendarEntries", ignore = true)
   Group convertGroupPostDTOtoEntity(GroupPostDTO groupPostDTO);
 
   @Mapping(source = "id", target = "id")
@@ -84,6 +85,7 @@ public interface DTOMapper {
   @Mapping(target = "adminId", ignore = true)
   @Mapping(target = "memberships", ignore = true)
   @Mapping(target = "activeUsers", ignore = true)
+  @Mapping(target = "calendarEntries", ignore = true)
   Group convertGroupPutDTOtoEntity(GroupPutDTO groupPutDTO);
   
   @Mapping(source = "id", target = "id")
@@ -152,17 +154,26 @@ public interface DTOMapper {
   ActivityGetDTO convertEntityToActivityGetDTO(Activity activity);
 
 
+  @Mapping(target = "group", expression = "java(mapGroupId(calendarEntryPostDTO.getGroupId()))")
   @Mapping(source = "title", target = "title")
   @Mapping(source = "description", target = "description")
   @Mapping(source = "startTime", target = "startTime")
   @Mapping(source = "endTime", target = "endTime")
   @Mapping(target = "id", ignore = true)
-  @Mapping(target = "groupId", ignore = true)
   @Mapping(target = "createdByUsername", ignore = true)
   CalendarEntries convertCalendarEntryPostDTOtoEntity(CalendarEntriesPostDTO calendarEntryPostDTO);
+  
+  @Named("mapGroupId")
+  default Group mapGroupId(Long groupId) {
+    if (groupId == null) return null;
+    Group group = new Group();
+    group.setId(groupId);
+    return group;
+}
+
 
   @Mapping(source = "id", target = "id")
-  @Mapping(source = "groupId", target = "groupId")
+  @Mapping(source = "group.id", target = "groupId")
   @Mapping(source = "createdByUsername", target = "createdByUsername")
   @Mapping(source = "title", target = "title")
   @Mapping(source = "description", target = "description")
