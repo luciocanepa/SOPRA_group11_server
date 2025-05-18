@@ -10,7 +10,8 @@ RUN chmod +x ./gradlew
 COPY build.gradle settings.gradle /app/
 COPY src /app/src
 # Build only the executable Spring Boot JAR
-RUN ./gradlew clean bootJar --no-daemon
+
+RUN ./gradlew clean build --no-daemon
 
 # make image smaller by using multi stage build
 FROM openjdk:17-slim
@@ -21,8 +22,9 @@ USER 3301
 # Set container working directory to /app
 WORKDIR /app
 # copy built artifact from build stage
-COPY --from=build /app/build/libs/*.jar /app/
+COPY --from=build /app/build/libs/soprafs24.jar /app/soprafs24.jar
+
 # Expose the port on which the server will be running (based on application.properties)
 EXPOSE 8080
 # start server
-CMD ["java", "-jar", "/app/soprafs25.jar"]
+CMD ["java", "-jar", "/app/soprafs24.jar"]
