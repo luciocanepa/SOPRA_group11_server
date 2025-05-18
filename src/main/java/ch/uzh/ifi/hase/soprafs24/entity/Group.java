@@ -48,4 +48,7 @@ public class Group implements Serializable {
             .map(GroupMembership::getUser)
             .toList();
     }
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CalendarEntries> calendarEntries;
 }
