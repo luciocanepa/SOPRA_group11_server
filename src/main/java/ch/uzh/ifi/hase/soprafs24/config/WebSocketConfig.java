@@ -34,15 +34,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Register the STOMP endpoints
-        // This allows clients to connect to the WebSocket server
+        // Split and trim the origins to ensure no whitespace issues
         String[] origins = allowedOrigins.split(",");
+        for (int i = 0; i < origins.length; i++) {
+            origins[i] = origins[i].trim();
+        }
+
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins)
+                .setAllowedOrigins(origins) // This will set the proper Access-Control-Allow-Origin header
                 .withSockJS()
                 .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js")
                 .setWebSocketEnabled(true)
-                .setSessionCookieNeeded(true); // Enable session cookies for SockJS fallback
+                .setSessionCookieNeeded(true);
 
         logger.info("WebSocket STOMP endpoints registered");
         logger.info("Allowed origins: {}", String.join(", ", origins));
