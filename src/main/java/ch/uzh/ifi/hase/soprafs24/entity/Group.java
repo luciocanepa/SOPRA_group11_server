@@ -49,6 +49,6 @@ public class Group implements Serializable {
             .toList();
     }
 
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CalendarEntries> calendarEntries;
 }
