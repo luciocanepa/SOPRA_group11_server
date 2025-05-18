@@ -39,7 +39,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         String[] origins = allowedOrigins.split(",");
         registry.addEndpoint("/ws")
                 .setAllowedOrigins(origins)
-                .setAllowCredentials(true) // Allow credentials
                 .withSockJS()
                 .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js")
                 .setWebSocketEnabled(true)
