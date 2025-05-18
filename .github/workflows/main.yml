@@ -61,7 +61,7 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           deliverables: app.yaml
-          version: v1
+          version: v2
           credentials: ${{ secrets.GCP_SERVICE_CREDENTIALS }}
 
       - name: Test
