@@ -20,7 +20,7 @@ public class CalendarEntriesController {
     this.calendarEntryService = calendarEntryService;
   }
 
-  @PostMapping("/calendar-entries/groups/{groupId}")
+  @PostMapping("/groups/{groupId}/calendar-entries")
   @ResponseStatus(HttpStatus.CREATED)
   public CalendarEntriesGetDTO createCalendarEntry(@PathVariable Long groupId, @RequestBody CalendarEntriesPostDTO postDTO, @RequestHeader("Authorization") String token) {
 
@@ -31,7 +31,7 @@ public class CalendarEntriesController {
   }
 
   
-  @GetMapping("/calendar-entries/groups/{groupId}")
+  @GetMapping("/groups/{groupId}/calendar-entries")
   @ResponseStatus(HttpStatus.OK)
   public List<CalendarEntriesGetDTO> getCalendarEntriesForGroup(@PathVariable Long groupId, @RequestHeader("Authorization") String token) {
     List<CalendarEntries> entries = calendarEntryService.getCalendarEntriesForGroup(groupId, token);
