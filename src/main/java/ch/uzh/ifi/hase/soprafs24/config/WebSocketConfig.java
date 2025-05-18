@@ -8,6 +8,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -38,11 +39,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         String[] origins = allowedOrigins.split(",");
         registry.addEndpoint("/ws")
                 .setAllowedOrigins(origins)
+                .setAllowCredentials(true) // Allow credentials
                 .withSockJS()
+                .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js")
                 .setWebSocketEnabled(true)
-                .setSupressCors(false); // Ensure CORS is properly handled
+                .setSessionCookieNeeded(true); // Enable session cookies for SockJS fallback
 
         logger.info("WebSocket STOMP endpoints registered");
         logger.info("Allowed origins: {}", String.join(", ", origins));
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        registration.setMessageSizeLimit(64 * 1024) // 64KB
+                .setSendBufferSizeLimit(512 * 1024) // 512KB
+                .setSendTimeLimit(20000); // 20 seconds
+
+        logger.info("WebSocket transport configured with size and time limits");
     }
 }
