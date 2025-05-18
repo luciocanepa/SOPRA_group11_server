@@ -15,7 +15,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketConfig.class);
 
-    @Value("${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000,https://sopra-fs25-group-11-client.vercel.app/}")
+    @Value("${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000,https://sopra-fs25-group-11-client.vercel.app}")
     private String allowedOrigins;
 
     @Override
@@ -23,11 +23,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Enable simple memory-based message broker to send messages to clients
         // The client will subscribe to these destinations to receive messages
         config.enableSimpleBroker("/topic");
-        
+
         // Set the application destination prefix
         // Messages sent from clients to the server will be prefixed with this
         config.setApplicationDestinationPrefixes("/app");
-        
+
         logger.info("WebSocket message broker configured with topics and application prefix");
     }
 
@@ -35,10 +35,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register the STOMP endpoints
         // This allows clients to connect to the WebSocket server
+        String[] origins = allowedOrigins.split(",");
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(allowedOrigins.split(","))
-                .withSockJS(); // Enable SockJS fallback
-        
-        logger.info("WebSocket STOMP endpoints registered with allowed origins: {}", allowedOrigins);
+                .setAllowedOrigins(origins)
+                .withSockJS()
+                .setWebSocketEnabled(true)
+                .setSupressCors(false); // Ensure CORS is properly handled
+
+        logger.info("WebSocket STOMP endpoints registered");
+        logger.info("Allowed origins: {}", String.join(", ", origins));
     }
 }

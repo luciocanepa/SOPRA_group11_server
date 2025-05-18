@@ -3,4 +3,18 @@
 
 runtime: java17
 instance_class: F2
-env: flex
+
+env: flex #flex is environment needed for websocket
+
+# Enable WebSocket support
+network:
+  session_affinity: true
+
+# Request handlers
+handlers:
+  - url: /ws(/.*)?
+    script: auto
+    secure: always
+  - url: /.*
+    script: auto
+    secure: always
