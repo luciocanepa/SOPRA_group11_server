@@ -10,10 +10,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @SpringBootApplication
 public class Application {
+
+  private static final Logger log = LoggerFactory.getLogger(Application.class);
 
   public static void main(String[] args) {
     SpringApplication.run(Application.class, args);
@@ -35,7 +39,12 @@ public class Application {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedOrigins("*").allowedMethods("*");
+        registry.addMapping("/**")
+            .allowedOrigins("https://sopra-fs25-group-11-client.vercel.app", "http://localhost:3000")
+            .allowedMethods("*")
+            .allowedHeaders("*")
+            .exposedHeaders("Authorization")
+            .allowCredentials(true);
       }
     };
   }
