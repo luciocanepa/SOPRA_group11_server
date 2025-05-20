@@ -14,7 +14,6 @@ import ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs24.constant.MembershipStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +30,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ActivityService {
+    private final Logger log = LoggerFactory.getLogger(ActivityService.class);
+
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
@@ -41,8 +42,8 @@ public class ActivityService {
     private static final String NOT_FOUND = "%s with ID %s was not found";
     private static final String INVALID_DATES = "Start date must be before or equal to end date";
 
-    @Autowired
-    public ActivityService(ActivityRepository activityRepository, UserRepository userRepository, GroupRepository groupRepository, MembershipService membershipService) {
+    public ActivityService(ActivityRepository activityRepository, UserRepository userRepository,
+            GroupRepository groupRepository, MembershipService membershipService) {
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
         this.groupRepository = groupRepository;
@@ -84,15 +85,16 @@ public class ActivityService {
         }
 
         return activityRepository.findByUserAndStartDateTimeBetweenOrderByStartDateTimeAsc(
-            authenticatedUser, effectiveStartDateTime, effectiveEndDateTime);
+                authenticatedUser, effectiveStartDateTime, effectiveEndDateTime);
     }
 
-    public List<ActivityAggregateDTO> getAggregatedActivities(Long userId, String token, LocalDate startDate, LocalDate endDate) {
+    public List<ActivityAggregateDTO> getAggregatedActivities(Long userId, String token, LocalDate startDate,
+            LocalDate endDate) {
         // Get the activities first & checks if the user is authorized
         List<Activity> activities = getActivitiesByDateRange(userId, token, startDate, endDate);
 
         Map<LocalDate, List<Activity>> groupedByDate = activities.stream()
-            .collect(Collectors.groupingBy(activity -> activity.getStartDateTime().toLocalDate()));
+                .collect(Collectors.groupingBy(activity -> activity.getStartDateTime().toLocalDate()));
 
         List<ActivityAggregateDTO> aggregatedResults = new ArrayList<>();
         groupedByDate.forEach((date, dailyActivities) -> {
@@ -101,8 +103,8 @@ public class ActivityService {
 
             // Calculate total duration in minutes for all activities on this date
             long duration = dailyActivities.stream()
-                    .mapToLong(activity -> 
-                        Duration.between(activity.getStartDateTime(), activity.getEndDateTime()).toMinutes())
+                    .mapToLong(activity -> Duration.between(activity.getStartDateTime(), activity.getEndDateTime())
+                            .toMinutes())
                     .sum();
 
             aggregateDTO.setDuration(duration);
@@ -115,14 +117,17 @@ public class ActivityService {
         return aggregatedResults;
     }
 
-    public List<UserActivitiesGetDTO> getGroupUsersActivities(Long userId, String token, Long groupId, LocalDate startDate, LocalDate endDate) {
+    public List<UserActivitiesGetDTO> getGroupUsersActivities(Long userId, String token, Long groupId,
+            LocalDate startDate, LocalDate endDate) {
         User authenticatedUser = validateTokenAndGetUser(token);
         if (!authenticatedUser.getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
         }
-        
-        Group group = groupRepository.findById(groupId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "Group", groupId)));
-        if (!membershipService.findByUserAndGroup(authenticatedUser, group).getStatus().equals(MembershipStatus.ACTIVE)) {
+
+        Group group = groupRepository.findById(groupId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "Group", groupId)));
+        if (!membershipService.findByUserAndGroup(authenticatedUser, group).getStatus()
+                .equals(MembershipStatus.ACTIVE)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
         }
 
@@ -136,12 +141,13 @@ public class ActivityService {
             userActivities.setName(user.getName());
             userActivities.setProfilePicture(user.getProfilePicture());
 
-            // To get the activities of the user it makes use of the getActivitiesByDateRange function for the single user
+            // To get the activities of the user it makes use of the
+            // getActivitiesByDateRange function for the single user
             List<Activity> activities = getActivitiesByDateRange(user.getId(), user.getToken(), startDate, endDate);
             List<ActivityGetDTO> activityDTOs = activities.stream()
-                .map(activity -> DTOMapper.INSTANCE.convertEntityToActivityGetDTO(activity))
-                .collect(Collectors.toList());
-            
+                    .map(activity -> DTOMapper.INSTANCE.convertEntityToActivityGetDTO(activity))
+                    .collect(Collectors.toList());
+
             userActivities.setActivities(activityDTOs);
             userActivitiesList.add(userActivities);
         }
@@ -149,14 +155,17 @@ public class ActivityService {
         return userActivitiesList;
     }
 
-    public List<UserAggregatedActivitiesGetDTO> getGroupUsersAggregatedActivities(Long userId, String token, Long groupId, LocalDate startDate, LocalDate endDate) {
+    public List<UserAggregatedActivitiesGetDTO> getGroupUsersAggregatedActivities(Long userId, String token,
+            Long groupId, LocalDate startDate, LocalDate endDate) {
         User authenticatedUser = validateTokenAndGetUser(token);
         if (!authenticatedUser.getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
         }
-        
-        Group group = groupRepository.findById(groupId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "Group", groupId)));
-        if (!membershipService.findByUserAndGroup(authenticatedUser, group).getStatus().equals(MembershipStatus.ACTIVE)) {
+
+        Group group = groupRepository.findById(groupId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "Group", groupId)));
+        if (!membershipService.findByUserAndGroup(authenticatedUser, group).getStatus()
+                .equals(MembershipStatus.ACTIVE)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
         }
 
@@ -170,10 +179,12 @@ public class ActivityService {
             userAggregatedActivities.setName(user.getName());
             userAggregatedActivities.setProfilePicture(user.getProfilePicture());
 
-            // To get the activities of the user it makes use of the getAggregatedActivities function for the single user
-            List<ActivityAggregateDTO> aggregatedActivities = getAggregatedActivities(user.getId(), user.getToken(), startDate, endDate);
+            // To get the activities of the user it makes use of the getAggregatedActivities
+            // function for the single user
+            List<ActivityAggregateDTO> aggregatedActivities = getAggregatedActivities(user.getId(), user.getToken(),
+                    startDate, endDate);
             userAggregatedActivities.setAggregatedActivities(aggregatedActivities);
-            
+
             userAggregatedActivitiesList.add(userAggregatedActivities);
         }
 
@@ -181,10 +192,12 @@ public class ActivityService {
     }
 
     private User validateTokenAndGetUser(String token) {
+        log.info("Validating token from ActivityService: {}", token);
         User user = userRepository.findByToken(token);
         if (user == null) {
+            log.warn("Token validation failed from ActivityService: {}", token);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
         }
         return user;
     }
-} 
+}

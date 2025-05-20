@@ -22,8 +22,7 @@ USER 3301
 # Set container working directory to /app
 WORKDIR /app
 # copy built artifact from build stage
-COPY --from=build /app/build/libs/soprafs24.jar /app/soprafs24.jar
-
+COPY --from=build /app/build/libs/soprafs24.jar /app/
 # Expose the port on which the server will be running (based on application.properties)
 EXPOSE 8080
 # start server

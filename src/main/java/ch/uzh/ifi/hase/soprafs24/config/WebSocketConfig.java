@@ -21,12 +21,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable simple memory-based message broker to send messages to clients
-        // The client will subscribe to these destinations to receive messages
         config.enableSimpleBroker("/topic");
 
-        // Set the application destination prefix
-        // Messages sent from clients to the server will be prefixed with this
         config.setApplicationDestinationPrefixes("/app");
 
         logger.info("WebSocket message broker configured with topics and application prefix");
@@ -34,29 +30,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Split and trim the origins to ensure no whitespace issues
-        String[] origins = allowedOrigins.split(",");
-        for (int i = 0; i < origins.length; i++) {
-            origins[i] = origins[i].trim();
-        }
 
+        // Register the STOMP endpoints
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins) // This will set the proper Access-Control-Allow-Origin header
-                .withSockJS()
-                .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js")
-                .setWebSocketEnabled(true)
-                .setSessionCookieNeeded(true);
+                .setAllowedOrigins(allowedOrigins.split(","))
+                .withSockJS(); // Enable SockJS fallback
 
-        logger.info("WebSocket STOMP endpoints registered");
-        logger.info("Allowed origins: {}", String.join(", ", origins));
-    }
+        logger.info("WebSocket STOMP endpoints registered with allowed origins: {}", allowedOrigins);
 
-    @Override
-    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
-        registration.setMessageSizeLimit(64 * 1024) // 64KB
-                .setSendBufferSizeLimit(512 * 1024) // 512KB
-                .setSendTimeLimit(20000); // 20 seconds
-
-        logger.info("WebSocket transport configured with size and time limits");
     }
 }

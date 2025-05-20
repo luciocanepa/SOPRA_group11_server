@@ -11,7 +11,6 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,9 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.HashMap;
 
 /**
  * User Service
@@ -49,12 +46,11 @@ public class UserService {
   private static final String UNAUTHORIZED = "Invalid token";
   private static final String FORBIDDEN = "User is not authorized to perform this action";
 
-  @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
-                    MembershipService membershipService,
-                    PasswordEncoder passwordEncoder,
-                    WebSocketService webSocketService,
-                    ActivityService activityService) {
+      MembershipService membershipService,
+      PasswordEncoder passwordEncoder,
+      WebSocketService webSocketService,
+      ActivityService activityService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.membershipService = membershipService;
@@ -69,7 +65,8 @@ public class UserService {
 
   public User getUserById(Long id, String token) {
     validateToken(token);
-    return this.userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", id)));
+    return this.userRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "User", id)));
   }
 
   public User createUser(User newUser) {
@@ -108,15 +105,14 @@ public class UserService {
     List<Group> groupIds = membershipService.getActiveGroupsForUser(userByUsername);
     for (Group group : groupIds) {
       webSocketService.sendTimerUpdate(
-        userByUsername.getId().toString(),
-        userByUsername.getUsername(),
-        group.getId().toString(),
-        userByUsername.getStatus().toString(),
-        "0",
-        LocalDateTime.now().toString()
-      );
+          userByUsername.getId().toString(),
+          userByUsername.getUsername(),
+          group.getId().toString(),
+          userByUsername.getStatus().toString(),
+          "0",
+          LocalDateTime.now().toString());
     }
-    
+
     return userByUsername;
   }
 
@@ -163,52 +159,50 @@ public class UserService {
     user.setStatus(UserStatus.OFFLINE);
     userRepository.save(user);
     userRepository.flush();
-    
+
     // send status update to all groups the user is in with websocket
     List<Group> groupIds = membershipService.getActiveGroupsForUser(user);
     for (Group group : groupIds) {
       webSocketService.sendTimerUpdate(
-        user.getId().toString(),
-        user.getUsername(),
-        group.getId().toString(),
-        user.getStatus().toString(),
-        "0",
-        LocalDateTime.now().toString()
-      );
+          user.getId().toString(),
+          user.getUsername(),
+          group.getId().toString(),
+          user.getStatus().toString(),
+          "0",
+          LocalDateTime.now().toString());
     }
-    
+
     return user;
   }
 
   public List<Group> getGroupsForUser(Long userId, String token) {
     validateToken(token);
     User user = userRepository.findByToken(token);
-    if(!user.getId().equals(userId)) {
+    if (!user.getId().equals(userId)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
     }
 
     return membershipService.getActiveGroupsForUser(user);
   }
 
-  public User putUserEdits(Long id , UserPutDTO edits , String token ) {
+  public User putUserEdits(Long id, UserPutDTO edits, String token) {
     User user = findByToken(token); // validity of token already checked by the method
 
-    if (!user.getId().equals(id)) { //id we got via token does not match id from the url
+    if (!user.getId().equals(id)) { // id we got via token does not match id from the url
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, FORBIDDEN);
     }
-    //if the field for username has a value and the new username equals another then it will not work
+    // if the field for username has a value and the new username equals another
+    // then it will not work
     if (edits.getUsername() != null) {
       if (edits.getUsername().equals(user.getUsername())) {
-          // nothing happens when the entered username is the same
+        // nothing happens when the entered username is the same
+      } else if (userRepository.findByUsername(edits.getUsername()) != null) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(CONFLICT, edits.getUsername()));
+      } else {
+        user.setUsername(edits.getUsername());
       }
-      else if (userRepository.findByUsername(edits.getUsername()) != null) {
-          throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(CONFLICT, edits.getUsername()));
-      }
-      else {
-          user.setUsername(edits.getUsername());
-      }
-  }
-    
+    }
+
     if (edits.getPassword() != null) {
       user.setPassword(passwordEncoder.encode(edits.getPassword()));
     }
@@ -227,7 +221,7 @@ public class UserService {
 
     if (edits.getProfilePicture() != null) {
       user.setProfilePicture(edits.getProfilePicture());
-    } 
+    }
 
     userRepository.save(user);
     userRepository.flush();
@@ -245,7 +239,8 @@ public class UserService {
     }
 
     // Create new activity when finished a work session
-    // If the user had status WORK, then any change in status should create a new activity
+    // If the user had status WORK, then any change in status should create a new
+    // activity
     if (user.getStatus() == UserStatus.WORK) {
       Activity activity = new Activity();
       activity.setUser(user);
@@ -257,20 +252,19 @@ public class UserService {
     user.setStatus(userTimer.getStatus());
     user.setStartTime(userTimer.getStartTime());
     user.setDuration(userTimer.getDuration());
-    
+
     user = userRepository.save(user);
     userRepository.flush();
 
     List<Group> groupIds = membershipService.getActiveGroupsForUser(user);
     for (Group group : groupIds) {
       webSocketService.sendTimerUpdate(
-        user.getId().toString(),
-        user.getUsername(),
-        group.getId().toString(),
-        user.getStatus().toString(),
-        user.getDuration().toString(),
-        user.getStartTime().toString()
-      );
+          user.getId().toString(),
+          user.getUsername(),
+          group.getId().toString(),
+          user.getStatus().toString(),
+          user.getDuration().toString(),
+          user.getStartTime().toString());
     }
 
     return user;
@@ -280,13 +274,14 @@ public class UserService {
   public boolean isUserInGroup(Long userId, Long groupId) {
     User user = findById(userId);
     return user.getMemberships().stream()
-        .anyMatch(membership -> 
-            membership.getGroup().getId().equals(groupId) && 
+        .anyMatch(membership -> membership.getGroup().getId().equals(groupId) &&
             membership.getStatus() == MembershipStatus.ACTIVE);
   }
 
   public void validateToken(String token) {
-    if (!userRepository.existsByToken(token)) {
+    log.info("Validating token from UserService: {}", token);
+    if (userRepository.findByToken(token) == null) {
+      log.warn("Token validation failed from UserService: {}", token);
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
   }

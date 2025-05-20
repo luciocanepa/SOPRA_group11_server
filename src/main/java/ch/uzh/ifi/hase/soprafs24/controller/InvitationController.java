@@ -14,37 +14,40 @@ import java.util.List;
 
 /**
  * Invitation Controller
- * This class is responsible for handling all REST requests related to group invitations.
+ * This class is responsible for handling all REST requests related to group
+ * invitations.
  */
 @RestController
 public class InvitationController {
 
     private final InvitationService invitationService;
-    
+
     InvitationController(InvitationService invitationService) {
         this.invitationService = invitationService;
-    }   
+    }
 
     /**
      * POST /groups/{gid}/invitations : Send an invitation to a user to join a group
      */
     @PostMapping("/groups/{gid}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
-    public InvitationGetDTO createInvitation(@PathVariable Long gid, @RequestBody InvitationPostDTO invitationPostDTO, @RequestHeader("Authorization") String token) {
+    public InvitationGetDTO createInvitation(@PathVariable Long gid, @RequestBody InvitationPostDTO invitationPostDTO,
+            @RequestHeader("Authorization") String token) {
         GroupMembership membership = invitationService.createInvitation(gid, token, invitationPostDTO.getInviteeId());
         return DTOMapper.INSTANCE.convertMembershipToInvitationGetDTO(membership);
     }
 
     @GetMapping("/groups/{gid}/invitations")
     @ResponseStatus(HttpStatus.OK)
-    public List<InvitationGetDTO> getGroupInvitations(@PathVariable Long gid, @RequestHeader("Authorization") String token) {
+    public List<InvitationGetDTO> getGroupInvitations(@PathVariable Long gid,
+            @RequestHeader("Authorization") String token) {
         return invitationService.getGroupInvitations(gid, token);
     }
 
-
     @GetMapping("/users/{uid}/invitations")
     @ResponseStatus(HttpStatus.OK)
-    public List<InvitationGetDTO> getUserInvitations(@PathVariable Long uid, @RequestHeader("Authorization") String token) {
+    public List<InvitationGetDTO> getUserInvitations(@PathVariable Long uid,
+            @RequestHeader("Authorization") String token) {
         return invitationService.getUserInvitations(uid, token);
     }
 
