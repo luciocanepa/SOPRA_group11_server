@@ -13,6 +13,13 @@ import org.mapstruct.factory.Mappers;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mapstruct.AfterMapping;
+import org.mapstruct.MappingTarget;
+
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+
+
 /**
  * DTOMapper
  * This class is responsible for generating classes that will automatically
@@ -183,4 +190,14 @@ public interface DTOMapper {
   @Mapping(source = "endTime", target = "endTime")
   CalendarEntriesGetDTO convertEntityToCalendarEntryGetDTO(CalendarEntries calendarEntry);
 
+
+    @AfterMapping
+    default void fixStartTimeToUtc(User user, @MappingTarget UserGetDTO dto) {
+        if (user.getStartTime() != null) {
+            dto.setStartTime(user.getStartTime()
+                    .atOffset(ZoneOffset.UTC)
+                    .format(DateTimeFormatter.ISO_INSTANT));
+        }
+    }
 }
+
