@@ -9,7 +9,8 @@ RUN chmod +x ./gradlew
 # Copy build script and source code
 COPY build.gradle settings.gradle /app/
 COPY src /app/src
-# Build the server
+# Build only the executable Spring Boot JAR
+
 RUN ./gradlew clean build --no-daemon
 
 # make image smaller by using multi stage build

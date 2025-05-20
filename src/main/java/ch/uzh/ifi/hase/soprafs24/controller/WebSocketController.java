@@ -134,10 +134,12 @@ public class WebSocketController {
         try{
             User user = userService.findById(Long.parseLong(senderId));
             String senderName = user.getUsername();
-            String startTime = user.getStartTime().toString();
-            String duration = user.getDuration().toString();
+            String startTime = payload.get("startTime").toString();
+            String duration = payload.get("duration").toString();
             String secondDuration = payload.get("secondDuration").toString();
             String status = user.getStatus().toString();
+            String originalDuration = payload.get("originalDuration").toString();
+
 
             webSocketService.sendMessageToGroup(groupId, Map.of(
                 "type", "SYNC",
@@ -146,7 +148,8 @@ public class WebSocketController {
                 "startTime", startTime,
                 "duration", duration,
                 "secondDuration", secondDuration,
-                "status", status
+                "status", status,
+                    "originalDuration", originalDuration
             ));
             return String.format("Message sent to topic /topic/group.%s", groupId);
         } catch (Exception e) {
