@@ -11,7 +11,6 @@ import ch.uzh.ifi.hase.soprafs24.rest.dto.UserTimerPutDTO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,9 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.HashMap;
 
 /**
  * User Service
@@ -49,7 +46,6 @@ public class UserService {
   private static final String UNAUTHORIZED = "Invalid token";
   private static final String FORBIDDEN = "User is not authorized to perform this action";
 
-  @Autowired
   public UserService(@Qualifier("userRepository") UserRepository userRepository,
       MembershipService membershipService,
       PasswordEncoder passwordEncoder,
@@ -283,11 +279,9 @@ public class UserService {
   }
 
   public void validateToken(String token) {
-    log.info(
-        "Validating token: " + (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "null"));
-    if (!userRepository.existsByToken(token)) {
-      log.warn("Token validation failed: "
-          + (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "null"));
+    log.info("Validating token from UserService: {}", token);
+    if (userRepository.findByToken(token) == null) {
+      log.warn("Token validation failed from UserService: {}", token);
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
     }
   }
