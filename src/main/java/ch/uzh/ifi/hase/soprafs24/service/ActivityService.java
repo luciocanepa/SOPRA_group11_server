@@ -103,9 +103,13 @@ public class ActivityService {
 
             // Calculate total duration in minutes for all activities on this date
             long duration = dailyActivities.stream()
-                    .mapToLong(activity -> Duration.between(activity.getStartDateTime(), activity.getEndDateTime())
-                            .toMinutes())
-                    .sum();
+                .mapToLong(activity -> {
+                    Duration d = Duration.between(activity.getStartDateTime(), activity.getEndDateTime());
+                    long minutes = d.toMinutes();
+                    long seconds = d.minusMinutes(minutes).getSeconds();
+                    return seconds >= 30 ? minutes + 1 : minutes;
+                })
+                .sum();
 
             aggregateDTO.setDuration(duration);
             aggregatedResults.add(aggregateDTO);
