@@ -12,7 +12,15 @@ One Paragraph of project description goes here ...
 
 ## High level components
 
-...
+- **User Management**: The role of the [User](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/User.java) is to handle registration, authentication, and user profile data. This also includes keeping track of the [Memberships](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/GroupMembership.java) to [Groups](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/Group.java) the user is part of, as well as maintaining their current timer status, duration, and start time.
+
+- **Group and Membership Management**: [Groups](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/Group.java) store group data, including the ID of the group's creator. [Memberships](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/GroupMembership.java) act as connectors between users, groups, and invitations. They track which users are invited to a group, the status of those invitations, and therefore also the active members of a group.
+
+- **Activity Tracking**: Whenever a [User](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/User.java) updates their timer-related data (duration, status, or start time), an [Activity](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/Activity.java) is created. This records the time the user worked during that session, which can later be retrieved for individual or group statistics.
+
+- **WebSocket**: The [WebSocketService](src/main/java/ch/uzh/ifi/hase/soprafs24/service/WebSocketService.java) handles real-time communication. It broadcasts group chat messages, live timer and status updates of group members, and sends synchronization requests. These requests contain all the necessary information for group members to align their timers if they choose to accept the synchronization.
+
+
 
 ## Launch & deployment
 
