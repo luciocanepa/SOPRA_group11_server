@@ -18,8 +18,8 @@ import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.entity.ChatMessage;
 
 import java.util.Map;
-import java.time.LocalDateTime;
-
+//import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Controller
 @Transactional
@@ -101,7 +101,7 @@ public class WebSocketController {
 
         ChatMessage message = new ChatMessage();
         message.setSenderId(senderId);
-        message.setTimestamp(LocalDateTime.now());
+        message.setTimestamp(Instant.now());
         message.setGroupId(groupId);
         message.setContent(payload.get("content").toString());
 

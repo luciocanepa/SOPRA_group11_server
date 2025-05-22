@@ -1,6 +1,6 @@
 package ch.uzh.ifi.hase.soprafs24.entity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,5 +12,5 @@ public class ChatMessage {
     private String senderName;
     private String groupId;
     private String content;
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 }
