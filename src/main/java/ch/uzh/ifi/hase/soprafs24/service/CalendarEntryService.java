@@ -20,46 +20,38 @@ import ch.uzh.ifi.hase.soprafs24.repository.CalendarEntriesRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupMembershipRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.GroupRepository;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs24.service.GroupService;
 
 import ch.uzh.ifi.hase.soprafs24.entity.Group;
 
 @Service
 @Transactional
 public class CalendarEntryService {
-    @Autowired
-    private UserRepository userRepository;
-
     private static final String UNAUTHORIZED = "Invalid token";
     private static final String NOT_FOUND = "%s with ID %s was not found";
 
     private final CalendarEntriesRepository calendarEntriesRepository;
-    private final GroupRepository groupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
-    private final UserService userService;
     private final GroupService groupService;
+    private final UserRepository userRepository;
 
     public CalendarEntryService(
-        CalendarEntriesRepository calendarEntriesRepository,
-        GroupRepository groupRepository,
-        GroupMembershipRepository groupMembershipRepository,
-        UserService userService,
-        GroupService groupService
-    ) {
+            CalendarEntriesRepository calendarEntriesRepository,
+            GroupRepository groupRepository,
+            GroupMembershipRepository groupMembershipRepository,
+            UserService userService,
+            GroupService groupService,
+            UserRepository userRepository) {
         this.calendarEntriesRepository = calendarEntriesRepository;
-        this.groupRepository = groupRepository;
         this.groupMembershipRepository = groupMembershipRepository;
-        this.userService = userService;
         this.groupService = groupService;
-    
+        this.userRepository = userRepository;
     }
-
 
     public User findByToken(String token) {
         User userByToken = userRepository.findByToken(token);
 
         if (userByToken == null) {
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
         }
 
         return userByToken;
@@ -69,13 +61,11 @@ public class CalendarEntryService {
         User userByUsername = userRepository.findByUsername(name);
 
         if (userByUsername == null) {
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, UNAUTHORIZED);
         }
 
         return userByUsername;
     }
-
-
 
     public CalendarEntries createEntry(Long groupId, CalendarEntries request, String token) {
         User authenticatedUser = findByToken(token);
@@ -102,16 +92,16 @@ public class CalendarEntryService {
         if (group == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(NOT_FOUND, "Group", groupId));
         }
-    
+
         if (groupMembershipRepository.findByGroupAndUser(group, authenticatedUser).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, UNAUTHORIZED);
         }
 
         LocalDateTime now = LocalDateTime.now();
 
-    return calendarEntriesRepository.findByGroupId(groupId).stream()
-        .filter(entry -> entry.getStartTime().isAfter(now))
-        .sorted(Comparator.comparing(CalendarEntries::getStartTime))
-        .collect(Collectors.toList());
+        return calendarEntriesRepository.findByGroupId(groupId).stream()
+                .filter(entry -> entry.getStartTime().isAfter(now))
+                .sorted(Comparator.comparing(CalendarEntries::getStartTime))
+                .collect(Collectors.toList());
     }
 }

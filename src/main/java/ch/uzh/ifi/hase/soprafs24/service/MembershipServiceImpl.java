@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,13 +58,20 @@ public class MembershipServiceImpl implements MembershipService {
         membership.setInvitedBy(invitedBy);
         membership.setInvitedAt(LocalDateTime.now());
 
-        // Save the membership
-        membership = membershipRepository.save(membership);
-        
-        // Update the collections in both entities
+        // Set up bidirectional relationships
+        if (group.getMemberships() == null) {
+            group.setMemberships(new ArrayList<>());
+        }
+        if (user.getMemberships() == null) {
+            user.setMemberships(new ArrayList<>());
+        }
+
         group.getMemberships().add(membership);
         user.getMemberships().add(membership);
-        
+
+        // Save the membership
+        membership = membershipRepository.save(membership);
+
         // Save the updated entities
         groupRepository.save(group);
         userRepository.save(user);
@@ -76,14 +84,14 @@ public class MembershipServiceImpl implements MembershipService {
         Optional<GroupMembership> membershipOpt = membershipRepository.findByGroupAndUser(group, user);
         if (membershipOpt.isPresent()) {
             GroupMembership membership = membershipOpt.get();
-            
+
             // Remove from collections
             group.getMemberships().remove(membership);
             user.getMemberships().remove(membership);
-            
+
             // Delete the membership
             membershipRepository.delete(membership);
-            
+
             // Save the updated entities
             groupRepository.save(group);
             userRepository.save(user);
@@ -116,4 +124,4 @@ public class MembershipServiceImpl implements MembershipService {
         membership.setStatus(status);
         return membershipRepository.save(membership);
     }
-} 
+}
