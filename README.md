@@ -1,133 +1,141 @@
-# SoPra RESTful Service Template FS25
+# Pomodoro Time Tracking app
 
-## Getting started with Spring Boot
+## Group 11 (SOPRA fs-25)
 
-- Documentation: https://docs.spring.io/spring-boot/docs/current/reference/html/index.html
-- Guides: http://spring.io/guides
-    - Building a RESTful Web Service: http://spring.io/guides/gs/rest-service/
-    - Building REST services with Spring: https://spring.io/guides/tutorials/rest/
+Studying or working alone at home can feel isolating and unmotivating — and it’s easy to lose focus. That’s where our app comes in.
 
-## Setup this Template with your IDE of choice
+We created a web-based Pomodoro timer app that lets people study together in real time, even if they’re not in the same place. Users can join or create study groups, see each other’s live timer status, chat within the group, sync timers, and even plan sessions using Google Calendar.
 
-Download your IDE of choice (e.g., [IntelliJ](https://www.jetbrains.com/idea/download/), [Visual Studio Code](https://code.visualstudio.com/), or [Eclipse](http://www.eclipse.org/downloads/)). Make sure Java 17 is installed on your system (for Windows, please make sure your `JAVA_HOME` environment variable is set to the correct version of Java).
+Our goal was to build something that helps people stay connected and focused while studying remotely. Whether you’re working alone or as part of a group, our app helps bring structure to your time, makes studying feel a bit more social, and boosts motivation — all through a familiar and effective time management method.
 
-### IntelliJ
+## Built With
 
-If you consider to use IntelliJ as your IDE of choice, you can make use of your free educational license [here](https://www.jetbrains.com/community/education/#students).
+- [Java Springboot](https://spring.io/projects/spring-boot) - The Java backend framework
+- [Gradle](https://gradle.org/) - Dependency Management and build tool
+- [Lombok](https://projectlombok.org/) - Simplify getters and setters setup
 
-1. File -> Open... -> SoPra server template
-2. Accept to import the project as a `gradle project`
-3. To build right click the `build.gradle` file and choose `Run Build`
+## High level components
 
-### VS Code
+- **User Management**: The role of the [User](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/User.java) is to handle registration, authentication, and user profile data. This also includes keeping track of the [Memberships](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/GroupMembership.java) to [Groups](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/Group.java) the user is part of, as well as maintaining their current timer status, duration, and start time.
 
-The following extensions can help you get started more easily:
+- **Group and Membership Management**: [Groups](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/Group.java) store group data, including the ID of the group's creator. [Memberships](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/GroupMembership.java) act as connectors between users, groups, and invitations. They track which users are invited to a group, the status of those invitations, and therefore also the active members of a group.
 
-- `vmware.vscode-spring-boot`
-- `vscjava.vscode-spring-initializr`
-- `vscjava.vscode-spring-boot-dashboard`
-- `vscjava.vscode-java-pack`
+- **Activity Tracking**: Whenever a [User](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/User.java) updates their timer-related data (duration, status, or start time), an [Activity](src/main/java/ch/uzh/ifi/hase/soprafs24/entity/Activity.java) is created. This records the time the user worked during that session, which can later be retrieved for individual or group statistics.
 
-**Note:** You'll need to build the project first with Gradle, just click on the `build` command in the _Gradle Tasks_ extension. Then check the _Spring Boot Dashboard_ extension if it already shows `soprafs24` and hit the play button to start the server. If it doesn't show up, restart VS Code and check again.
+- **WebSocket**: The [WebSocketService](src/main/java/ch/uzh/ifi/hase/soprafs24/service/WebSocketService.java) handles real-time communication. It broadcasts group chat messages, live timer and status updates of group members, and sends synchronization requests. These requests contain all the necessary information for group members to align their timers if they choose to accept the synchronization.
 
-## Building with Gradle
 
-You can use the local Gradle Wrapper to build the application.
 
-- macOS: `./gradlew`
-- Linux: `./gradlew`
-- Windows: `./gradlew.bat`
+## Launch & deployment
 
-More Information about [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) and [Gradle](https://gradle.org/docs/).
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
-### Build
+1. Clone the repo locally:
+
+```bash
+git clone git@github.com:luciocanepa/SOPRA_group11_server.git
+```
+
+2. make sure you have the correct java version installed (v 17) and the correct gradle version (7.6.3):
+
+```bash
+java -version
+```
+
+```bash
+./gradlew -version
+```
+
+3. you can build the project with gradle:
 
 ```bash
 ./gradlew build
 ```
 
-### Run
+4. and run the application locally
 
 ```bash
-./gradlew bootRun
+./gradlew bootrun
 ```
 
-You can verify that the server is running by visiting `localhost:8080` in your browser.
+You can reference the [Gradlew wrapper documentation](https://docs.gradle.org/current/userguide/gradle_wrapper_basics.html#gradle_wrapper_basics) for additional commands and flags.
 
-### Test
+5. The app has 3 worklflows for deployment:
 
-```bash
-./gradlew test
-```
+- `dockerize.yml`: create a Docker container that will be hosted on google cloud.
+- as per instructions in `main.yml`: this also contains settings for sonarqube analysis (hosted on [sonarcloud](https://sonarcloud.io/organizations/luciocanepa-1/projects)).
+- `pr.yml` define the correct environment and run the tests.
 
-### Development Mode
+## Roadmap
 
-You can start the backend in development mode, this will automatically trigger a new build and reload the application
-once the content of a file has been changed.
+We have built the core functionalities of our collaborative Pomodoro Application, but there are a few features and improvements that could be added to enhance the user experience even more. Therefore, future developers may consider the following additions:
 
-Start two terminal windows and run:
+#### 1. Real-Time Group Sync via WebSockets
 
-`./gradlew build --continuous`
+**Goal:** Improve group responsiveness by updating group membership in real time.
 
-and in the other one:
+**Description:** When a user joins or leaves a group, the change should be visible instantly for all other group members using WebSockets instead of requiring a manual page refresh on the group dashboard.
 
-`./gradlew bootRun`
+#### 2. Invite User via WebSocket
+**Goal:** Improve user invitation flow and interactivity.
 
-If you want to avoid running all tests with every change, use the following command instead:
+**Description:** Receiving group invitations should appear in real-time on the user's dashboard, without having to refresh their user dashboard in order to view it. This should ideally be solved via WebSocket.
 
-`./gradlew build --continuous -xtest`
+#### 3. Enhanced Chat Features
+**Goal:** Make the break-time chat more interactive and engaging.
 
-## API Endpoint Testing with Postman
+**Suggestions:**
+- Add message reactions or emojis to quickly reflect and show emotions
+- Show who is currently typing
+- Enable replies to a specific message / reference a message by tagging it
+- Have private (1 on 1) chat rooms within the group (and/or outside of the group)
 
-We recommend using [Postman](https://www.getpostman.com) to test your API Endpoints.
+#### 4. Increased Gamification & Break Activities
+**Goal:** Encourage user engagement and make breaks more enjoyable.
 
-## Debugging
+**Suggestions:**
+- Introduce short mini-games during break sessions (like tic tac toe, rock paper scissors or hangman)
+- Add a leaderboard or continuous streak counter 
+- Implement reward badges for consistent study behavior
+- Group-based achievements to build team motivation and measure your groups with others (e.g. A group gets a reward each day, as long as all group members have spent some time studying.)
 
-If something is not working and/or you don't know what is going on. We recommend using a debugger and step-through the process step-by-step.
 
-To configure a debugger for SpringBoot's Tomcat servlet (i.e. the process you start with `./gradlew bootRun` command), do the following:
+## Authors
 
-1. Open Tab: **Run**/Edit Configurations
-2. Add a new Remote Configuration and name it properly
-3. Start the Server in Debug mode: `./gradlew bootRun --debug-jvm`
-4. Press `Shift + F9` or the use **Run**/Debug "Name of your task"
-5. Set breakpoints in the application where you need it
-6. Step through the process one step at a time
+| Name | Email | Matriculation Number | GitHub Account |
+|------|--------|-------------------|----------------|
+| Lucio Canepa (group leader) | <lucio.canepa@uzh.ch> | 21-915-905 | luciocanepa |
+| Anna Pang | <anna.pang@uzh.ch> | 17-968-660 | annapangUZH |
+| Sharon Kelly Isler | <sharonkelly.isler@uzh.ch> | 19-757-103 | sharonisler |
+| Moritz Leon Böttcher | <moritzleon.boettcher@uzh.ch> | 23-728-371 | moritzboet |
+| Helin Capan | <helin.capan@uzh.ch> | 21-718-895 | HelinCapan |
 
-## Testing
+## License
 
-Have a look here: https://www.baeldung.com/spring-boot-testing
+MIT License
 
-<br>
-<br>
-<br>
+Copyright (c) 2025 SOPRA-fs-25-group-11
 
-## Docker
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-### Introduction
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-This year, for the first time, Docker will be used to ease the process of deployment.\
-Docker is a tool that uses containers as isolated environments, ensuring that the application runs consistently and uniformly across different devices.\
-Everything in this repository is already set up to minimize your effort for deployment.\
-All changes to the main branch will automatically be pushed to dockerhub and optimized for production.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-### Setup
+## Acknowledgments
 
-1. **One** member of the team should create an account on [dockerhub](https://hub.docker.com/), _incorporating the group number into the account name_, for example, `SoPra_group_XX`.\
-2. This account then creates a repository on dockerhub with the _same name as the group's Github repository name_.\
-3. Finally, the person's account details need to be added as [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) to the group's repository:
-    - dockerhub_username (the username of the dockerhub account from step 1, for example, `SoPra_group_XX`)
-    - dockerhub_password (a generated PAT([personal access token](https://docs.docker.com/docker-hub/access-tokens/)) of the account with read and write access)
-    - dockerhub_repo_name (the name of the dockerhub repository from step 2)
-
-### Pull and run
-
-Once the image is created and has been successfully pushed to dockerhub, the image can be run on any machine.\
-Ensure that [Docker](https://www.docker.com/) is installed on the machine you wish to run the container.\
-First, pull (download) the image with the following command, replacing your username and repository name accordingly.
-
-`docker pull <dockerhub_username>/<dockerhub_repo_name>`
-
-Then, run the image in a container with the following command, again replacing _<dockerhub_username>_ and _<dockerhub_repo_name>_ accordingly.
-
-`docker run -p 3000:3000 <dockerhub_username>/<dockerhub_repo_name>`
+- Hat tip to anyone whose code was used
+- Inspiration
+- etc
