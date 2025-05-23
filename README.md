@@ -2,7 +2,11 @@
 
 ## Group 11 (SOPRA fs-25)
 
-One Paragraph of project description goes here ...
+Studying or working alone at home can feel isolating and unmotivating — and it’s easy to lose focus. That’s where our app comes in.
+
+We created a web-based Pomodoro timer app that lets people study together in real time, even if they’re not in the same place. Users can join or create study groups, see each other’s live timer status, chat within the group, sync timers, and even plan sessions using Google Calendar.
+
+Our goal was to build something that helps people stay connected and focused while studying remotely. Whether you’re working alone or as part of a group, our app helps bring structure to your time, makes studying feel a bit more social, and boosts motivation — all through a familiar and effective time management method.
 
 ## Built With
 
