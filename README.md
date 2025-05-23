@@ -68,7 +68,37 @@ You can reference the [Gradlew wrapper documentation](https://docs.gradle.org/cu
 
 ## Roadmap
 
-...
+We have built the core functionalities of our collaborative Pomodoro Application, but there are a few features and improvements that could be added to enhance the user experience even more. Therefore, future developers may consider the following additions:
+
+#### 1. Real-Time Group Sync via WebSockets
+
+**Goal:** Improve group responsiveness by updating group membership in real time.
+
+**Description:** When a user joins or leaves a group, the change should be visible instantly for all other group members using WebSockets instead of requiring a manual page refresh on the group dashboard.
+
+#### 2. Invite User via WebSocket
+**Goal:** Improve user invitation flow and interactivity.
+
+**Description:** Receiving group invitations should appear in real-time on the user's dashboard, without having to refresh their user dashboard in order to view it. This should ideally be solved via WebSocket.
+
+#### 3. Enhanced Chat Features
+**Goal:** Make the break-time chat more interactive and engaging.
+
+**Suggestions:**
+- Add message reactions or emojis to quickly reflect and show emotions
+- Show who is currently typing
+- Enable replies to a specific message / reference a message by tagging it
+- Have private (1 on 1) chat rooms within the group (and/or outside of the group)
+
+#### 4. Increased Gamification & Break Activities
+**Goal:** Encourage user engagement and make breaks more enjoyable.
+
+**Suggestions:**
+- Introduce short mini-games during break sessions (like tic tac toe, rock paper scissors or hangman)
+- Add a leaderboard or continuous streak counter 
+- Implement reward badges for consistent study behavior
+- Group-based achievements to build team motivation and measure your groups with others (e.g. A group gets a reward each day, as long as all group members have spent some time studying.)
+
 
 ## Authors
 
